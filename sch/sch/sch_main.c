@@ -7,6 +7,7 @@
 // Global variables
 int schedule_type = UNINITIALIZED;
 int size = -1;
+int weight=0;
 
 // File names
 char *input_file = NULL;
@@ -15,58 +16,58 @@ char *output_file = NULL;
 
 void readfile(FILE *filePointer) {
 	char c;
-	int space = 0, Saddindex = 0, Daddindex = 0;
+	int space = 0, Saddindex = 0, Daddindex = 0, line = 0;
 	char Sadd[15], Dadd[15];
-	long int PktID = 0, Time = 0, Length = 0, weight = 0;
+	long int PktID = 0, Time = 0, Length = 0;
 	unsigned int Sport = 0, Dport = 0;
 	while ((c = getc(filePointer)) != EOF) {
 		while (c != '\n') {
-			if (c = !' ' && space == 0) {
+			if (c != ' ' && space == 0) {
 				PktID = PktID * 10 + (c - '0');
 			}
 			if (c == ' ' && space == 0) {
 				space = 1;
 			}
-			if (c = !' ' && space == 1) {
+			if (c !=' ' && space == 1) {
 				Time = Time * 10 + (c - '0');
 			}
 			if (c == ' ' && space == 1) {
 				space = 2;
 			}
-			if (c = !' ' && space == 2) {
+			if (c != ' ' && space == 2) {
 				Sadd[Saddindex] = c;
 				Saddindex++;
 			}
 			if (c == ' ' && space == 2) {
 				space = 3;
 			}
-			if (c = !' ' && space == 3) {
+			if (c != ' ' && space == 3) {
 				Sport = Sport * 10 + (c - '0');
 			}
 			if (c == ' ' && space == 3) {
 				space = 4;
 			}
 
-			if (c = !' ' && space == 4) {
+			if (c != ' ' && space == 4) {
 				Dadd[Daddindex] = c;
 				Daddindex++;
 			}
 			if (c == ' ' && space == 4) {
 				space = 5;
 			}
-			if (c = !' ' && space == 5) {
+			if (c != ' ' && space == 5) {
 				Dport = Dport * 10 + (c - '0');
 			}
 			if (c == ' ' && space == 5) {
 				space = 6;
 			}
-			if (c = !' ' && space == 6) {
+			if (c != ' ' && space == 6) {
 				Length = Length * 10 + (c - '0');
 			}
 			if (c == ' ' && space == 6) {
 				space = 7;
 			}
-			if (c = !' ' && space == 7) {
+			if (line == 0 && (c != ' ' && space == 7)) {
 				weight = weight * 10 + (c - '0');
 			}
 		}
@@ -74,11 +75,14 @@ void readfile(FILE *filePointer) {
 
 		// restart for the next row//
 		if (c == '\n') {
-			int space = 0, Saddindex = 0, Daddindex = 0;
+			int space = 0, Saddindex = 0, Daddindex = 0, line = 1;
 			char Sadd[15], Dadd[15];
 			long int PktID = 0, Time = 0, Length = 0, weight = 0;
 			unsigned int Sport = 0, Dport = 0;
 		}
+	}
+	if (weight == 0) {
+		weight = size;
 	}
 }
 bool check_args_valid() {
