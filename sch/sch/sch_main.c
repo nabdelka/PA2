@@ -198,5 +198,6 @@ int main(int argc, char *argv[]) {
 // TODO A - function to add new packet (struct) to a flow:
 //			if flow exist, add to the list (call the function below)
 //			else flow and packet to the global array and updat flow num
+// TODO A - fill array when reading packets
 
 
