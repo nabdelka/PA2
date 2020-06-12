@@ -20,8 +20,21 @@ int main(int argc, char *argv[]) {
 	get_file_names(argv[2]);
 
 	FILE *filePointer;
-	//filePointer = fopen("fileName.txt", "r");
+	errno_t err;
 
+	// Open file for read 
+	err = fopen_s(&filePointer, "fileName.txt", "r");
+	if (err != 0)
+	{
+		printf("-E- error while openning input file for reading\n");
+		return -1;
+	}
+
+
+	if (fclose(filePointer) != 0) {
+		printf("-E- error while closing input file for reading\n");
+		return -1;
+	}
 
 
 	printf("Weeeeeee\n");
@@ -30,14 +43,14 @@ int main(int argc, char *argv[]) {
 
 // TODO N Done - move functions to a seperate files
 // TODO N - global array to save flows with lists addresses and global int to store flows number
-// TODO N - fix open_s
+// TODO N Done - fix open_s
 // TODO N - function to check if flows parameters (4 addresses) is exist - takes input ( sadd sport dadd dport ) return index if exist, and -1 if not
 // TODO N - function takes index and a new packet address, and it adds the packet to the begining of the list
 // TODO N - function to generate a new packet/flow struct and return pointer + free
 
 
 // TODO A - add structs for packet and for flow
-// TODO A - close opened file
+// TODO A Done - close opened file
 // TODO A - function to add new packet (struct) to a flow:
 //			if flow exist, add to the list (call the function below)
 //			else flow and packet to the global array and updat flow num
