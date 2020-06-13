@@ -17,6 +17,10 @@ char *input_file = NULL;
 char *stat_file = NULL;
 char *output_file = NULL;
 
+// Global array
+flow_index_str flows_array[MAX_FLOWS_NUM];
+int flows_number = 0;
+
 void readfile(FILE *filePointer) {
 	char c;
 	int space = 0, Saddindex = 0, Daddindex = 0;
