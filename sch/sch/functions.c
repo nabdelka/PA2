@@ -2,11 +2,15 @@
 #include <stdbool.h>
 #include <string.h>
 #include "constants.h"
+#include "functions.h"
 
 // Global variables
 int schedule_type = UNINITIALIZED;
 int size = -1;
 int weight = 0;
+char Sadd[15], Dadd[15];
+unsigned int Sport = 0, Dport = 0;
+long int PktID = 0, Time = 0, Length = 0;
 
 // File names
 char *input_file = NULL;
@@ -15,7 +19,7 @@ char *output_file = NULL;
 
 void readfile(FILE *filePointer) {
 	char c;
-	int space = 0, Saddindex = 0, Daddindex = 0, line = 0;
+	int space = 0, Saddindex = 0, Daddindex = 0;
 	char Sadd[15], Dadd[15];
 	long int PktID = 0, Time = 0, Length = 0;
 	unsigned int Sport = 0, Dport = 0;
@@ -66,24 +70,63 @@ void readfile(FILE *filePointer) {
 			if (c == ' ' && space == 6) {
 				space = 7;
 			}
-			if (line == 0 && (c != ' ' && space == 7)) {
+			if (c != ' ' && space == 7) {
 				weight = weight * 10 + (c - '0');
 			}
-		}
-		// at this point the values of each field is readed //
+			if (c == ' ' && space == 7) {
+				space = 8;
+			}
+			// at this point the values of each field is readed //
+			//Pointer for next flow
+			flow_index_str* flow_ptr;
+			flow_ptr = ceate_flow(Sadd[0], Dadd[0], Sport, Dport, Daddindex, Saddindex);
+			//Pointer for next packer
+			flow_packet* packet_ptr;
+			packet_ptr = ceate_packet(PktID, Time, Length, weight);
+			//check flow and add / add packer//
 
-		// restart for the next row//
-		if (c == '\n') {
-			int space = 0, Saddindex = 0, Daddindex = 0, line = 1;
-			char Sadd[15], Dadd[15];
-			long int PktID = 0, Time = 0, Length = 0, weight = 0;
-			unsigned int Sport = 0, Dport = 0;
+			// restart for the next row//
+			if (c == '\n') {
+				int space = 0, Saddindex = 0, Daddindex = 0;
+				char Sadd[15], Dadd[15];
+				long int PktID = 0, Time = 0, Length = 0, weight = 0;
+				unsigned int Sport = 0, Dport = 0;
+			}
 		}
-	}
-	if (weight == 0) {
-		weight = size;
 	}
 }
+
+// function that create the next flow //
+
+flow_index_str* ceate_flow(char *sadd, char *dadd, unsigned int sport, unsigned int dport ,int daddindex , int saddindex) {
+	int i = 0;
+	flow_index_str* flow_ptr = (flow_index_str*)malloc(sizeof(flow_index_str));
+	while (i < daddindex+1) {
+		flow_ptr->Dadd_index[i] = dadd[i];
+	}
+	while (i < saddindex + 1) {
+		flow_ptr->Sadd_index[i] = sadd[i];
+	}
+	flow_ptr->Dport_index = dport;
+	flow_ptr->Sport_index = sport;
+	flow_ptr->head = NULL;
+	return flow_ptr;
+}
+
+
+// function that create the next packet //
+
+flow_packet* ceate_packet(long int pktid , long int time , long int length , int weight_) {
+	flow_packet* packet_ptr = (flow_packet*)malloc(sizeof(flow_packet));
+	packet_ptr->Length = length;
+	packet_ptr->Time = time;
+	packet_ptr->PktID = pktid;
+	packet_ptr->weight = weight_;
+	packet_ptr->next = NULL;
+	return packet_ptr;
+}
+
+
 bool check_args_valid() {
 	bool status_good = true;
 	if (schedule_type == UNINITIALIZED) {
