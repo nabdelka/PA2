@@ -6,3 +6,4 @@
 enum sch_type { UNINITIALIZED, RR_TYPE, DRR_TYPE};
 
 #define MAX_FLOWS_NUM 32000
+#define MAX_IP_LENGTH 15 

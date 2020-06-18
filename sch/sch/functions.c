@@ -12,7 +12,7 @@ char Sadd[15], Dadd[15];
 unsigned int Sport = 0, Dport = 0;
 long int PktID = 0, Time = 0, Length = 0;
 unsigned int Timer = 0;
-unsigned int work_index;
+unsigned int work_index=0;
 
 // File names
 char *input_file = NULL;
@@ -20,112 +20,200 @@ char *stat_file = NULL;
 char *output_file = NULL;
 
 // Global array
-flow_index_str flows_array[MAX_FLOWS_NUM];
+flow_struct flows_array[MAX_FLOWS_NUM];
 int flows_number = 0;
 
-void readfile(FILE *filePointer) {
+int schedule_wrr() {
+
+	// Open file for read
+	FILE *filePointer;
+	errno_t err;
+	err = fopen_s(&filePointer, input_file, "r");
+	if (err != 0)
+	{
+		printf("-E- error while openning input file for reading\n");
+		return -1;
+	}
+
+	// Declare & Init variables
 	char c;
 	int space = 0, Saddindex = 0, Daddindex = 0, index_to_add;
-	char Sadd[15], Dadd[15];
+	char Sadd[MAX_IP_LENGTH+1], Dadd[MAX_IP_LENGTH+1];
 	long int PktID = 0, Time = 0, Length = 0;
 	unsigned int Sport = 0, Dport = 0;
+
+	// Read file
 	while ((c = getc(filePointer)) != EOF) {
-		while (c != '\n') {
-			if (c != ' ' && space == 0) {
-				PktID = PktID * 10 + (c - '0');
+
+		printf("space = %d got char: %c\n", space, c);
+
+		// restart for the next packet//
+		if (c == '\n') {
+			printf("-I- Got packet %ld at time %ld length: %ld %s %s %d %d\n",PktID, Time, Length, Sadd, Dadd,Sport,Dport);
+			if (Time > Timer) {
+				// empty buffer
+				// if still > timer
+					//Timer = Time; // just at firs packet
+					printf("-OUT- %d: %ld\n", Timer, PktID);
+					//Timer += Length;
+					//continue reading
+				// else
+					//
 			}
-			if (c == ' ' && space == 0) {
-				space = 1;
-			}
-			if (c != ' ' && space == 1) {
-				Time = Time * 10 + (c - '0');
-			}
-			if (c == ' ' && space == 1) {
-				space = 2;
-			}
-			if (c != ' ' && space == 2) {
-				Sadd[Saddindex] = c;
-				Saddindex++;
-			}
-			if (c == ' ' && space == 2) {
-				space = 3;
-			}
-			if (c != ' ' && space == 3) {
-				Sport = Sport * 10 + (c - '0');
-			}
-			if (c == ' ' && space == 3) {
-				space = 4;
+			else {
+				// add to buffer
+				//continue reading
 			}
 
-			if (c != ' ' && space == 4) {
-				Dadd[Daddindex] = c;
-				Daddindex++;
-			}
-			if (c == ' ' && space == 4) {
-				space = 5;
-			}
-			if (c != ' ' && space == 5) {
-				Dport = Dport * 10 + (c - '0');
-			}
-			if (c == ' ' && space == 5) {
-				space = 6;
-			}
-			if (c != ' ' && space == 6) {
-				Length = Length * 10 + (c - '0');
-			}
-			if (c == ' ' && space == 6) {
-				space = 7;
-			}
-			if (c != ' ' && space == 7) {
-				weight = weight * 10 + (c - '0');
-			}
-			if (c == ' ' && space == 7) {
-				space = 8;
-			}
-			// at this point the values of each field is readed //
+			printf("allocating memory\n");
+
 			//Pointer for next flow
-			flow_index_str* flow_ptr;
-			flow_ptr = ceate_flow(weight,Sadd[0], Dadd[0], Sport, Dport, Daddindex, Saddindex);
+			flow_struct* flow_ptr;
+			flow_ptr = ceate_flow(weight, Sadd, Dadd, Sport, Dport, Daddindex, Saddindex);
 			//Pointer for next packer
-			flow_packet* packet_ptr;
+			packet_struct* packet_ptr;
 			packet_ptr = ceate_packet(PktID, Time, Length);
 			//check flow and add / add packer//
-
+			printf("memory allocated\n");
 			// add backet to appropriate flow and add flow//
-			if(packet_ptr->Time = Timer){
-				index_to_add=add_to_buf(flow_ptr);
+			if (packet_ptr->Time = Timer) {
+				index_to_add = add_to_buf(flow_ptr);
 				add_backet(index_to_add, packet_ptr);
 			}
 			while (packet_ptr->Time >= Timer) {
+				printf("entered while\n");
+
 				///Work in the flow///
 				WRR_func(work_index);
-			}	
+				printf("WRR_func end\n");
 
-			// restart for the next row//
-			if (c == '\n') {
-				int space = 0, Saddindex = 0, Daddindex = 0;
-				char Sadd[15], Dadd[15];
-				long int PktID = 0, Time = 0, Length = 0, weight = 0;
-				unsigned int Sport = 0, Dport = 0;
-				if (packet_ptr->Time != Timer - 1) {
-					Timer = Timer + 1;
-				}
 			}
+			
+
+			// Init for a new line 
+			space = 0; Saddindex = 0; Daddindex = 0;
+			Sadd[0] = 0; Dadd[0] = 0;
+			PktID = 0; Time = 0; Length = 0; weight = 0;
+			Sport = 0; Dport = 0;
+			if (packet_ptr->Time != Timer - 1) {
+				Timer = Timer + 1;
+			}
+			continue;
 		}
+		// Read packet ID
+		if (c != ' ' && space == 0) {
+			PktID = PktID * 10 + (c - '0');
+			continue;
+		}
+		if (c == ' ' && space == 0) {
+			space = 1;
+			continue;
+		}
+		// Read arrival time
+		if (c != ' ' && space == 1) {
+			Time = Time * 10 + (c - '0');
+			continue;
+		}
+		if (c == ' ' && space == 1) {
+			space = 2;
+			continue;
+		}
+		// Read source address
+		if (c != ' ' && space == 2) {
+			Sadd[Saddindex] = c;
+			Saddindex++;
+			continue;
+		}
+		if (c == ' ' && space == 2) {
+			Sadd[Saddindex] = 0;
+			space = 3;
+			continue;
+		}
+		// Read source port
+		if (c != ' ' && space == 3) {
+			Sport = Sport * 10 + (c - '0');
+			continue;
+		}
+		if (c == ' ' && space == 3) {
+			space = 4;
+			continue;
+		}
+		// Read destination address
+		if (c != ' ' && space == 4) {
+			Dadd[Daddindex] = c;
+			Daddindex++;
+			continue;
+		}
+		if (c == ' ' && space == 4) {
+			Dadd[Daddindex] = 0;
+			space = 5;
+			continue;
+		}
+		// Read destination port
+		if (c != ' ' && space == 5) {
+			Dport = Dport * 10 + (c - '0');
+			continue;
+		}
+		if (c == ' ' && space == 5) {
+			space = 6;
+			continue;
+		}
+		// Read packet length
+		if (c != ' ' && space == 6) {
+			Length = Length * 10 + (c - '0');
+			continue;
+		}
+		if (c == ' ' && space == 6) {
+			space = 7;
+			continue;
+		}
+		// Read weight (if need)
+		if (c != ' ' && space == 7) {
+			weight = weight * 10 + (c - '0');
+			continue;
+		}
+		if (c == ' ' && space == 7) {
+			space = 8;
+			continue;
+		}
+
+		
+	}
+
+	// close input file
+	if (fclose(filePointer) != 0) {
+		printf("-E- error while closing input file for reading\n");
+		return -1;
 	}
 }
 
-// function that create the next flow //
 
-flow_index_str* ceate_flow(int weight_ , char *sadd, char *dadd, unsigned int sport, unsigned int dport ,int daddindex , int saddindex) {
-	int i = 0;
-	flow_index_str* flow_ptr = (flow_index_str*)malloc(sizeof(flow_index_str));
-	while (i < daddindex+1) {
-		flow_ptr->Dadd_index[i] = dadd[i];
+int schedule() {
+	// check schedule type: WRR/DRR and call the relevand scheduler
+	if (schedule_type == RR_TYPE) return schedule_wrr();
+		
+	else if(schedule_type == DRR_TYPE){
+		// TODO implement DRR func
+
 	}
-	while (i < saddindex + 1) {
-		flow_ptr->Sadd_index[i] = sadd[i];
+	else {
+		printf("-E- Unexpected schedule type\n");
+		return -1;
 	}
+}
+// function that create the next flow //
+flow_struct* ceate_flow(int weight_ , char *sadd, char *dadd, unsigned int sport, unsigned int dport ,int daddindex , int saddindex) {
+
+
+	flow_struct* flow_ptr = (flow_struct*)malloc(sizeof(flow_struct)); 	// TODO check if null
+
+	errno_t err;
+	err = strcpy_s(flow_ptr->Sadd_index, MAX_IP_LENGTH + 1, sadd); // TODO check err
+	if (err != 0) printf("Err copy 1\n");
+	err = strcpy_s(flow_ptr->Dadd_index, MAX_IP_LENGTH + 1, dadd); // TODO check err
+	if (err != 0) printf("Err copy 2\n");
+
+
 	flow_ptr->Dport_index = dport;
 	flow_ptr->Sport_index = sport;
 	flow_ptr->head = NULL;
@@ -135,9 +223,9 @@ flow_index_str* ceate_flow(int weight_ , char *sadd, char *dadd, unsigned int sp
 
 
 // function that create the next packet //
-
-flow_packet* ceate_packet(long int pktid , long int time , long int length) {
-	flow_packet* packet_ptr = (flow_packet*)malloc(sizeof(flow_packet));
+packet_struct* ceate_packet(long int pktid , long int time , long int length) {
+	packet_struct* packet_ptr = (packet_struct*)malloc(sizeof(packet_struct));
+	// TODO check if null
 	packet_ptr->Length = length;
 	packet_ptr->Time = time;
 	packet_ptr->PktID = pktid;
@@ -228,7 +316,7 @@ void get_file_names(char *name_str) {
 
 
 
-int add_to_buf(flow_index_str *flow_pointer) {
+int add_to_buf(flow_struct *flow_pointer) {
 	int i = 0, equal = 0, scom, dcom;
 	for (i = 0; i <= flows_number; i++) {
 		scom = strcmp(flow_pointer->Sadd_index, flows_array[i].Sadd_index);
@@ -252,10 +340,8 @@ int add_to_buf(flow_index_str *flow_pointer) {
 
 	return i;
 }
-
-
-void add_backet(int index, flow_packet* packet_to_add) {
-	flow_packet* packet_in_chain;
+void add_backet(int index, packet_struct* packet_to_add) {
+	packet_struct* packet_in_chain;
 	if (flows_array[index].head == NULL) {
 		flows_array[index].head = packet_to_add;
 	}
@@ -267,9 +353,8 @@ void add_backet(int index, flow_packet* packet_to_add) {
 		packet_in_chain->next = packet_to_add;
 	}
 }
-
-WRR_func(int work_index) {
-	flow_packet* packet_in_work;
+void WRR_func(int work_index) {
+	packet_struct* packet_in_work;
 	unsigned int i = 0;
 	packet_in_work = flows_array[work_index].head;
 	if (weight == 0) {
@@ -288,12 +373,12 @@ WRR_func(int work_index) {
 	}
 	if (packet_in_work->Length == 0 && weight != 0) {
 		flows_array[work_index].head = packet_in_work->next;
+		///////////// print in the file ////////////////////////////
 		flows_array[work_index].weight--;
 	}
 	if (packet_in_work->Length != 0 && weight !=0) {
-		///////////// print in the file ////////////////////////////
 		packet_in_work->Length--;
+		Timer++;
 	}
-	Timer++;
 }
 

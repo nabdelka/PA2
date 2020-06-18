@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include "functions.h"
 #include "constants.h"
+#include "functions.h"
 
 
 
@@ -12,29 +12,17 @@ int main(int argc, char *argv[]) {
 		printf("Please provide arguments\n");
 		return -1;
 	}
+
 	// Get input arguments and check validity
 	get_sch_type(argv[1]);
 	get_size(argv[3]);
 	if (!check_args_valid()) return -1;
+
 	// Generate file names
 	get_file_names(argv[2]);
 
-	FILE *filePointer;
-	errno_t err;
+	schedule_wrr();
 
-	// Open file for read 
-	err = fopen_s(&filePointer, "fileName.txt", "r");
-	if (err != 0)
-	{
-		printf("-E- error while openning input file for reading\n");
-		return -1;
-	}
-
-
-	if (fclose(filePointer) != 0) {
-		printf("-E- error while closing input file for reading\n");
-		return -1;
-	}
 
 
 	printf("Weeeeeee\n");
