@@ -11,15 +11,17 @@ int weight = 0;
 char Sadd[15], Dadd[15];
 unsigned int Sport = 0, Dport = 0;
 long int PktID = 0, Time = 0, Length = 0;
-unsigned int Timer = 0;
+long int Timer = -1;
 unsigned int work_index=-1; // TODO fix
 int work_weight = 0; // TODO fix
 long int work_Length = 0;
-
+int Iteration = 350;
+bool iter = false;
 // File names
 char *input_file = NULL;
 char *stat_file = NULL;
 char *output_file = NULL;
+FILE *out_filePointer;
 
 // Global array
 flow_struct flows_array[MAX_FLOWS_NUM];
@@ -28,14 +30,23 @@ int flows_number = 0;
 int schedule_wrr() {
 
 	// Open file for read
-	FILE *filePointer;
+	FILE *in_filePointer;
+
+
 	errno_t err;
-	err = fopen_s(&filePointer, input_file, "r");
+	err = fopen_s(&in_filePointer, input_file, "r");
 	if (err != 0)
 	{
 		printf("-E- error while openning input file for reading\n");
 		return -1;
 	}
+	err = fopen_s(&out_filePointer, output_file, "w");
+	if (err != 0)
+	{
+		printf("-E- error while openning output file for writing\n");
+		return -1;
+	}
+	
 
 	// Declare & Init variables
 	char c;
@@ -45,47 +56,62 @@ int schedule_wrr() {
 	unsigned int Sport = 0, Dport = 0;
 
 	// Read file
-	while ((c = getc(filePointer)) != EOF) {
+	while ((c = getc(in_filePointer)) != EOF) {
 
 		//printf("space = %d got char: %c\n", space, c);
 
 		// restart for the next packet//
 		if (c == '\n') {
-			//printf("-I- Got packet %ld at time %ld length: %ld %s %s %d %d\n",PktID, Time, Length, Sadd, Dadd,Sport,Dport);
+			//printf("-I- [%d] Got packet %ld at time %ld length: %ld %s %s %d %d - w = %d\n",Timer,PktID, Time, Length, Sadd, Dadd,Sport,Dport,weight);
 
 			if (Time > Timer) {
-				if (work_index == -1) {
-					Timer = Time; // No need for +1
+				if (flows_number == 0) { // Initial case - first line handling
+					printf("AMEER is shit just at the begining\n");
+					Timer = Time;
 					// add to buffer
 					//Pointer for next flow
-					flow_struct* flow_ptr;
-					flow_ptr = create_flow(weight, Sadd, Dadd, Sport, Dport);
+					flow_struct last_flow;
+					create_flow(&last_flow,weight, Sadd, Dadd, Sport, Dport);
 					//Pointer for next packer
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
-
-					index_to_add = add_flow_to_buf(flow_ptr);
+					index_to_add = add_flow_to_buf(&last_flow);
 					add_packet_to_buf(index_to_add, packet_ptr);
 
-					packet_struct* packet_in_work;
-
-					if (work_index == -1) {
-						work_index = index_to_add;
-						work_weight = flows_array[index_to_add].weight;
-						packet_in_work = flows_array[index_to_add].head;
-						work_Length = packet_in_work->Length;
-					}
 					//print_flows_array();
+
+
 					//continue reading
 					goto continue_reading;
 				}
 				else {
-
+					//printf("ameer is working\n");
 					do {
 						// WRR ITERATION
 						WRR_func();
 						Timer++;
 					} while (Time > Timer);
+					// add to buffer
+					//Pointer for next flow
+					flow_struct last_flow;
+					create_flow(&last_flow, weight, Sadd, Dadd, Sport, Dport);
+					//Pointer for next packer
+					packet_struct* packet_ptr;
+					packet_ptr = create_packet(PktID, Time, Length);
+					index_to_add = add_flow_to_buf(&last_flow);
+					add_packet_to_buf(index_to_add, packet_ptr);
+
+					// continue reading
+					Iteration--;
+					if (Iteration == 0 && iter)
+					{
+						print_flows_array();
+						printf("fuck you\n");
+						return -1;
+					}
+					goto continue_reading;
+
+					
 					
 				}
 
@@ -94,15 +120,15 @@ int schedule_wrr() {
 			}
 			else {
 			// add to buffer
-
+				//printf("Adding fucking\n");
 				//Pointer for next flow
-				flow_struct* flow_ptr;
-				flow_ptr = create_flow(weight, Sadd, Dadd, Sport, Dport);
+				flow_struct flow_ptr;
+				create_flow(&flow_ptr, weight, Sadd, Dadd, Sport, Dport);
 				//Pointer for next packer
 				packet_struct* packet_ptr;
 				packet_ptr = create_packet(PktID, Time, Length);
 
-				index_to_add = add_flow_to_buf(flow_ptr);
+				index_to_add = add_flow_to_buf(&flow_ptr);
 				add_packet_to_buf(index_to_add, packet_ptr);
 			//continue reading
 				goto continue_reading;
@@ -198,9 +224,20 @@ int schedule_wrr() {
 		
 	}
 
+	//printf("\nEOFF\n");
+	//print_flows_array();
+	//printf("\n\n");
+	while (work_index != -1) {
+		WRR_func();
+		Timer++;
+	}
 	// close input file
-	if (fclose(filePointer) != 0) {
-		printf("-E- error while closing input file for reading\n");
+	if (fclose(in_filePointer) != 0) {
+		printf("-E- error while closing input file\n");
+		return -1;
+	}
+	if (fclose(out_filePointer) != 0) {
+		printf("-E- error while closing output file\n");
 		return -1;
 	}
 }
@@ -220,10 +257,8 @@ int schedule() {
 	}
 }
 // function that create the next flow //
-flow_struct* create_flow(int weight_ , char *sadd, char *dadd, unsigned int sport, unsigned int dport ) {
+flow_struct* create_flow(flow_struct* flow_ptr, int weight_ , char *sadd, char *dadd, unsigned int sport, unsigned int dport ) {
 
-
-	flow_struct* flow_ptr = (flow_struct*)malloc(sizeof(flow_struct)); 	// TODO check if null
 
 	errno_t err;
 	err = strcpy_s(flow_ptr->Sadd_index, MAX_IP_LENGTH + 1, sadd); // TODO check err
@@ -349,8 +384,8 @@ int add_flow_to_buf(flow_struct *flow_pointer) {
 		flows_array[i].Sport_index = flow_pointer->Sport_index;
 		flows_array[i].Dport_index = flow_pointer->Dport_index;
 		flows_number++;
-		if (flows_array[i].weight == 0) flows_array[i].weight = size;
-		else							flows_array[i].weight = flow_pointer->weight;
+		if (flow_pointer->weight == 0) flows_array[i].weight = size;
+		else						   flows_array[i].weight = flow_pointer->weight;
 		
 	}
 
@@ -376,59 +411,66 @@ void WRR_func() {
 	packet_struct* packet_in_work;
 	packet_struct* dirty_packet;
 	unsigned int i = 0;
-	printf("Started WRR\n");
+	bool out_packet = false;
+	//printf("Started WRR: %d %d %d\n",work_Length,work_weight,work_index);
 
-	if (work_index = -1) {
-		printf("if if if\n");
-
-		while (i < flows_number) {
-			printf("faaaaaat\n");
+	if (work_index == -1) {
+		printf("Noor fucking first call %d\n",flows_number);
+		for(i = 0; i< flows_number;i++){
 			if (flows_array[i].head != NULL) {
 				work_index = i;
 				work_weight = flows_array[i].weight;
 				packet_in_work = flows_array[work_index].head;
 				work_Length = packet_in_work->Length;
-				printf("-OUT- %d: %d \n", packet_in_work->PktID,Timer);
+				fprintf(out_filePointer, "%ld: %ld\n",Timer, packet_in_work->PktID);
 				break;
 			}
 		}
 	}
 	packet_in_work = flows_array[work_index].head;
 
-	if (work_weight == 0 && work_index != -1) {
+	if (work_Length != 0 && work_weight != 0 && work_index != -1) {
+		work_Length--;
+	}
+	if (work_Length == 0 && work_weight != 0 && work_index != -1) {
+		out_packet = true;
+		// remove out packet
+		dirty_packet = flows_array[work_index].head;
+		flows_array[work_index].head = dirty_packet->next;
+		free(dirty_packet);
+		work_weight--;
+
+
+	}
+
+
+	if ((work_weight == 0 && work_index != -1) || flows_array[work_index].head == NULL) {
 		for (i = work_index + 1; i <= flows_number; i++) {
-			if (i == flows_number) {
-				i = 0;
-			}
-			packet_in_work = flows_array[i].head;
-			dirty_packet = flows_array[i].head;
-			flows_array[i].head = packet_in_work->next;
-			free(dirty_packet);
-			if (packet_in_work != NULL) {
+			if (i == flows_number) i = 0; // cyclic
+			
+			if (flows_array[i].head != NULL) {
 				work_index = i;
 				work_weight = flows_array[i].weight;
 				work_Length = packet_in_work->Length;
 				break;
 			}
-			else if (i = work_index) {
+			else if (i == work_index) {
 				work_index = -1;
 				break;
 			}
 		}
 	}
-	if (work_Length == 0 && work_weight != 0 && work_index != -1) {
-		dirty_packet = flows_array[work_index].head;
-		flows_array[work_index].head = packet_in_work->next;
-		free(dirty_packet);
-		packet_in_work = flows_array[i].head;
-		work_Length = packet_in_work->Length;
-		printf("-OUT- %d: %d \n", packet_in_work->PktID, Timer);
-		work_weight--;
-	}
-	if (work_Length != 0 && work_weight !=0 && work_index != -1) {
 
-		work_Length--;
+	if (out_packet && work_index!=-1) {
+		packet_in_work = flows_array[work_index].head;
+		if (packet_in_work == NULL) {
+			printf("WTF %d\n",work_index);
+			print_flows_array();
+		}
+		work_Length = packet_in_work->Length;
+		fprintf(out_filePointer, "%ld: %ld\n", Timer+1, packet_in_work->PktID);
 	}
+
 }
 
 void print_flows_array() {
