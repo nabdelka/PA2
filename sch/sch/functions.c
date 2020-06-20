@@ -224,14 +224,30 @@ int schedule_wrr() {
 		
 	}
 
-	//printf("\nEOFF\n");
-	//print_flows_array();
-	//printf("\n\n");
+
 	while (work_index != -1) {
 		WRR_func();
 		Timer++;
 	}
-	// close input file
+
+	// Print Statistic
+	// Open file for write
+	FILE *stat_filePointer;
+	err = fopen_s(&stat_filePointer, stat_file, "w");
+	if (err != 0)
+	{
+		printf("-E- error while openning stat file for writing\n");
+		return -1;
+	}
+	// write to stat file
+	for (int i = 0; i < flows_number; i++) {
+		fprintf(stat_filePointer, "%s %d %s %d %d\n", flows_array[i].Sadd_index, flows_array[i].Sport_index, flows_array[i].Dadd_index, flows_array[i].Dport_index, flows_array[i].numPkts);
+	}
+
+
+
+
+	// close files
 	if (fclose(in_filePointer) != 0) {
 		printf("-E- error while closing input file\n");
 		return -1;
@@ -240,6 +256,11 @@ int schedule_wrr() {
 		printf("-E- error while closing output file\n");
 		return -1;
 	}
+	if (fclose(stat_filePointer) != 0) {
+		printf("-E- error while closing stat file\n");
+		return -1;
+	}
+	return 0;
 }
 
 
@@ -383,6 +404,7 @@ int add_flow_to_buf(flow_struct *flow_pointer) {
 		strcpy_s(flows_array[i].Dadd_index, sizeof(flow_pointer->Dadd_index), flow_pointer->Dadd_index);
 		flows_array[i].Sport_index = flow_pointer->Sport_index;
 		flows_array[i].Dport_index = flow_pointer->Dport_index;
+		flows_array[i].numPkts = 0;
 		flows_number++;
 		if (flow_pointer->weight == 0) flows_array[i].weight = size;
 		else						   flows_array[i].weight = flow_pointer->weight;
@@ -404,6 +426,7 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 		}
 		packet_in_chain->next = packet_to_add;
 	}
+	flows_array[index].numPkts++;
 }
 
 
