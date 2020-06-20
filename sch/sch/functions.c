@@ -51,7 +51,7 @@ int schedule_wrr() {
 
 		// restart for the next packet//
 		if (c == '\n') {
-			printf("-I- Got packet %ld at time %ld length: %ld %s %s %d %d\n",PktID, Time, Length, Sadd, Dadd,Sport,Dport);
+			//printf("-I- Got packet %ld at time %ld length: %ld %s %s %d %d\n",PktID, Time, Length, Sadd, Dadd,Sport,Dport);
 
 			if (Time > Timer) {
 				if (work_index == -1) {
@@ -66,7 +66,16 @@ int schedule_wrr() {
 
 					index_to_add = add_flow_to_buf(flow_ptr);
 					add_packet_to_buf(index_to_add, packet_ptr);
-					print_flows_array();
+
+					packet_struct* packet_in_work;
+
+					if (work_index == -1) {
+						work_index = index_to_add;
+						work_weight = flows_array[index_to_add].weight;
+						packet_in_work = flows_array[index_to_add].head;
+						work_Length = packet_in_work->Length;
+					}
+					//print_flows_array();
 					//continue reading
 					goto continue_reading;
 				}
@@ -78,8 +87,6 @@ int schedule_wrr() {
 						Timer++;
 					} while (Time > Timer);
 					
-
-
 				}
 
 
@@ -87,6 +94,7 @@ int schedule_wrr() {
 			}
 			else {
 			// add to buffer
+
 				//Pointer for next flow
 				flow_struct* flow_ptr;
 				flow_ptr = create_flow(weight, Sadd, Dadd, Sport, Dport);
@@ -327,14 +335,13 @@ void get_file_names(char *name_str) {
 
 
 int add_flow_to_buf(flow_struct *flow_pointer) {
-	int i = 0, equal = 0, scom, dcom;
+	int i = 0, scom, dcom;
 	for (i = 0; i < flows_number; i++) {
 		scom = strcmp(flow_pointer->Sadd_index, flows_array[i].Sadd_index);
 		dcom = strcmp(flow_pointer->Dadd_index, flows_array[i].Dadd_index);
 		if (scom == 0 && dcom == 0 && flow_pointer->Sport_index == flows_array[i].Sport_index && flow_pointer->Dport_index == flows_array[i].Dport_index) {
-			equal = 1;
+			break;
 		}
-		break;
 	}
 	if (i == flows_number) {
 		strcpy_s(flows_array[i].Sadd_index, sizeof(flow_pointer->Sadd_index), flow_pointer->Sadd_index);
@@ -369,8 +376,13 @@ void WRR_func() {
 	packet_struct* packet_in_work;
 	packet_struct* dirty_packet;
 	unsigned int i = 0;
+	printf("Started WRR\n");
+
 	if (work_index = -1) {
+		printf("if if if\n");
+
 		while (i < flows_number) {
+			printf("faaaaaat\n");
 			if (flows_array[i].head != NULL) {
 				work_index = i;
 				work_weight = flows_array[i].weight;
@@ -420,6 +432,7 @@ void WRR_func() {
 }
 
 void print_flows_array() {
+	printf("We have %d flows.\n", flows_number);
 	for (int i = 0; i < flows_number; i++) {
 		if (flows_array[i].head != NULL) printf("# Flow at index %d:\n", i);
 		else {
@@ -428,7 +441,7 @@ void print_flows_array() {
 		}
 		packet_struct* packet_ptr = flows_array[i].head;
 		do {
-			printf("   % PktID = %d    Length = %d\n", packet_ptr->PktID, packet_ptr->Length);
+			printf("   \% PktID = %d    Length = %d\n", packet_ptr->PktID, packet_ptr->Length);
 			packet_ptr = packet_ptr->next;
 
 		} while (packet_ptr != NULL);
