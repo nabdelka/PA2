@@ -47,7 +47,7 @@ int schedule_wrr() {
 	// Read file
 	while ((c = getc(filePointer)) != EOF) {
 
-		printf("space = %d got char: %c\n", space, c);
+		//printf("space = %d got char: %c\n", space, c);
 
 		// restart for the next packet//
 		if (c == '\n') {
@@ -66,14 +66,22 @@ int schedule_wrr() {
 
 					index_to_add = add_flow_to_buf(flow_ptr);
 					add_packet_to_buf(index_to_add, packet_ptr);
+					if (Timer > 132) {
+						packet_ptr = flows_array[1].head;
+						printf("Flows: %ld\n", packet_ptr->PktID);
+					}
 					//continue reading
 					goto continue_reading;
 				}
 				else {
 
-					for (int i = 0; i < flows_number; i++) {
+					do {
+						// WRR ITERATION
+						WRR_func();
+						Timer++;
+					} while (Time > Timer);
+					
 
-					}
 
 				}
 
@@ -96,25 +104,6 @@ int schedule_wrr() {
 			}
 
 
-			//Pointer for next flow
-			flow_struct* flow_ptr;
-			flow_ptr = create_flow(weight, Sadd, Dadd, Sport, Dport);
-			//Pointer for next packer
-			packet_struct* packet_ptr;
-			packet_ptr = create_packet(PktID, Time, Length);
-			//check flow and add / add packer//
-
-			// add backet to appropriate flow and add flow//
-			if (packet_ptr->Time = Timer) {
-				index_to_add = add_flow_to_buf(flow_ptr);
-				add_packet_to_buf(index_to_add, packet_ptr);
-			}
-			while (packet_ptr->Time >= Timer) {
-
-				///Work in the flow///
-				WRR_func();
-
-			}
 			
 			continue_reading:
 			// Init for a new line 
@@ -383,27 +372,30 @@ void WRR_func() {
 	packet_struct* packet_in_work;
 	unsigned int i = 0;
 	if (work_index = -1) {
-		while (i < sizeof(flows_array)) {
+		while (i < flows_number) {
 			if (flows_array[i].head != NULL) {
 				work_index = i;
 				work_weight = flows_array[i].weight;
 				packet_in_work = flows_array[work_index].head;
 				work_Length = packet_in_work->Length;
+				printf("-OUT- %d: %d \n", packet_in_work->PktID,Timer);
 				break;
 			}
 		}
 	}
+	packet_in_work = flows_array[work_index].head;
+
 	if (work_weight == 0 && work_index != -1) {
-		for (i = work_index + 1; i < flows_number; i++) {
+		for (i = work_index + 1; i <= flows_number; i++) {
+			if (i == flows_number) {
+				i = 0;
+			}
 			packet_in_work = flows_array[i].head;
 			if (packet_in_work != NULL) {
 				work_index = i;
 				work_weight = flows_array[i].weight;
 				work_Length = packet_in_work->Length;
 				break;
-			}
-			else if (i == flows_number) {
-				i = 0;
 			}
 			else if (i = work_index) {
 				work_index = -1;
@@ -415,12 +407,13 @@ void WRR_func() {
 		flows_array[work_index].head = packet_in_work->next;
 		packet_in_work = flows_array[i].head;
 		work_Length = packet_in_work->Length;
+		printf("-OUT- %d: %d \n", packet_in_work->PktID, Timer);
+
 		work_weight--;
 	}
 	if (work_Length != 0 && work_weight !=0 && work_index != -1) {
-		///////////// print in the file ////////////////////////////
+
 		work_Length--;
-		Timer++;
 	}
 }
 
