@@ -367,6 +367,7 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 
 void WRR_func() {
 	packet_struct* packet_in_work;
+	packet_struct* dirty_packet;
 	unsigned int i = 0;
 	if (work_index = -1) {
 		while (i < flows_number) {
@@ -388,6 +389,9 @@ void WRR_func() {
 				i = 0;
 			}
 			packet_in_work = flows_array[i].head;
+			dirty_packet = flows_array[i].head;
+			flows_array[i].head = packet_in_work->next;
+			free(dirty_packet);
 			if (packet_in_work != NULL) {
 				work_index = i;
 				work_weight = flows_array[i].weight;
@@ -401,7 +405,9 @@ void WRR_func() {
 		}
 	}
 	if (work_Length == 0 && work_weight != 0 && work_index != -1) {
+		dirty_packet = flows_array[work_index].head;
 		flows_array[work_index].head = packet_in_work->next;
+		free(dirty_packet);
 		packet_in_work = flows_array[i].head;
 		work_Length = packet_in_work->Length;
 		printf("-OUT- %d: %d \n", packet_in_work->PktID, Timer);
