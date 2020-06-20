@@ -51,7 +51,14 @@ int schedule_wrr() {
 		// restart for the next packet//
 		if (c == '\n') {
 			printf("-I- Got packet %ld at time %ld length: %ld %s %s %d %d\n",PktID, Time, Length, Sadd, Dadd,Sport,Dport);
+
 			if (Time > Timer) {
+				if (work_index == -1) {
+					// Buffer is empty
+					Timer++;
+					goto continue_reading;
+				}
+
 				// empty buffer
 				// if still > timer
 					//Timer = Time; // just at firs packet
@@ -62,11 +69,20 @@ int schedule_wrr() {
 					//
 			}
 			else {
-				// add to buffer
-				//continue reading
+			// add to buffer
+				//Pointer for next flow
+				flow_struct* flow_ptr;
+				flow_ptr = create_flow(weight, Sadd, Dadd, Sport, Dport);
+				//Pointer for next packer
+				packet_struct* packet_ptr;
+				packet_ptr = create_packet(PktID, Time, Length);
+
+				index_to_add = add_flow_to_buf(flow_ptr);
+				add_packet_to_buf(index_to_add, packet_ptr);
+			//continue reading
+				goto continue_reading;
 			}
 
-			printf("allocating memory\n");
 
 			//Pointer for next flow
 			flow_struct* flow_ptr;
@@ -75,30 +91,25 @@ int schedule_wrr() {
 			packet_struct* packet_ptr;
 			packet_ptr = create_packet(PktID, Time, Length);
 			//check flow and add / add packer//
-			printf("memory allocated\n");
+
 			// add backet to appropriate flow and add flow//
 			if (packet_ptr->Time = Timer) {
 				index_to_add = add_flow_to_buf(flow_ptr);
 				add_packet_to_buf(index_to_add, packet_ptr);
 			}
 			while (packet_ptr->Time >= Timer) {
-				printf("entered while\n");
 
 				///Work in the flow///
 				WRR_func();
-				printf("WRR_func end\n");
 
 			}
 			
-
+			continue_reading:
 			// Init for a new line 
 			space = 0; Saddindex = 0; Daddindex = 0;
 			Sadd[0] = 0; Dadd[0] = 0;
 			PktID = 0; Time = 0; Length = 0; weight = 0;
 			Sport = 0; Dport = 0;
-			if (packet_ptr->Time != Timer - 1) {
-				Timer = Timer + 1;
-			}
 			continue;
 		}
 		// Read packet ID
