@@ -66,10 +66,7 @@ int schedule_wrr() {
 
 					index_to_add = add_flow_to_buf(flow_ptr);
 					add_packet_to_buf(index_to_add, packet_ptr);
-					if (Timer > 132) {
-						packet_ptr = flows_array[1].head;
-						printf("Flows: %ld\n", packet_ptr->PktID);
-					}
+					print_flows_array();
 					//continue reading
 					goto continue_reading;
 				}
@@ -408,12 +405,29 @@ void WRR_func() {
 		packet_in_work = flows_array[i].head;
 		work_Length = packet_in_work->Length;
 		printf("-OUT- %d: %d \n", packet_in_work->PktID, Timer);
-
 		work_weight--;
 	}
 	if (work_Length != 0 && work_weight !=0 && work_index != -1) {
 
 		work_Length--;
 	}
+}
+
+void print_flows_array() {
+	for (int i = 0; i < flows_number; i++) {
+		if (flows_array[i].head != NULL) printf("# Flow at index %d:\n", i);
+		else {
+			printf("# Flow at index %d has no packets\n\n", i);
+			continue;
+		}
+		packet_struct* packet_ptr = flows_array[i].head;
+		do {
+			printf("   % PktID = %d    Length = %d\n", packet_ptr->PktID, packet_ptr->Length);
+			packet_ptr = packet_ptr->next;
+
+		} while (packet_ptr != NULL);
+		printf("\n");
+	}
+
 }
 

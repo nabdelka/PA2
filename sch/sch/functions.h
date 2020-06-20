@@ -28,3 +28,4 @@ packet_struct* create_packet(long int pktid, long int time, long int length);
 int add_flow_to_buf(flow_struct *flow_pointer);
 void add_packet_to_buf(int index, packet_struct* packet_to_add);
 void WRR_func();
+void print_flows_array();
