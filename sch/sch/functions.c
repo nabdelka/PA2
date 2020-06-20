@@ -12,8 +12,9 @@ char Sadd[15], Dadd[15];
 unsigned int Sport = 0, Dport = 0;
 long int PktID = 0, Time = 0, Length = 0;
 unsigned int Timer = 0;
-unsigned int work_index=0; // TODO fix
+unsigned int work_index=-1; // TODO fix
 int work_weight = 0; // TODO fix
+long int work_Length = 0;
 
 // File names
 char *input_file = NULL;
@@ -370,29 +371,44 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 void WRR_func() {
 	packet_struct* packet_in_work;
 	unsigned int i = 0;
-	packet_in_work = flows_array[work_index].head;
-	if (weight == 0) {
-		for (i = work_index + 1; i < flows_number; i++) {
-			if (flows_array[i].weight > 0) {
+	if (work_index = -1) {
+		while (i < sizeof(flows_array)) {
+			if (flows_array[i].head != NULL) {
 				work_index = i;
+				work_weight = flows_array[i].weight;
+				packet_in_work = flows_array[work_index].head;
+				work_Length = packet_in_work->Length;
+				break;
+			}
+		}
+	}
+	if (work_weight == 0 && work_index != -1) {
+		for (i = work_index + 1; i < flows_number; i++) {
+			packet_in_work = flows_array[i].head;
+			if (packet_in_work != NULL) {
+				work_index = i;
+				work_weight = flows_array[i].weight;
+				work_Length = packet_in_work->Length;
 				break;
 			}
 			else if (i == flows_number) {
 				i = 0;
 			}
 			else if (i = work_index) {
-				// Init current work index = -1
+				work_index = -1;
 				break;
 			}
 		}
 	}
-	if (packet_in_work->Length == 0 && weight != 0) {
+	if (work_Length == 0 && work_weight != 0 && work_index != -1) {
 		flows_array[work_index].head = packet_in_work->next;
-		flows_array[work_index].weight--;
+		packet_in_work = flows_array[i].head;
+		work_Length = packet_in_work->Length;
+		work_weight--;
 	}
-	if (packet_in_work->Length != 0 && weight !=0) {
+	if (work_Length != 0 && work_weight !=0 && work_index != -1) {
 		///////////// print in the file ////////////////////////////
-		packet_in_work->Length--;
+		work_Length--;
 		Timer++;
 	}
 }
