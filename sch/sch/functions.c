@@ -55,19 +55,30 @@ int schedule_wrr() {
 
 			if (Time > Timer) {
 				if (work_index == -1) {
-					// Buffer is empty
-					Timer++;
+					Timer = Time; // No need for +1
+					// add to buffer
+					//Pointer for next flow
+					flow_struct* flow_ptr;
+					flow_ptr = create_flow(weight, Sadd, Dadd, Sport, Dport);
+					//Pointer for next packer
+					packet_struct* packet_ptr;
+					packet_ptr = create_packet(PktID, Time, Length);
+
+					index_to_add = add_flow_to_buf(flow_ptr);
+					add_packet_to_buf(index_to_add, packet_ptr);
+					//continue reading
 					goto continue_reading;
 				}
+				else {
 
-				// empty buffer
-				// if still > timer
-					//Timer = Time; // just at firs packet
-					printf("-OUT- %d: %ld\n", Timer, PktID);
-					//Timer += Length;
-					//continue reading
-				// else
-					//
+					for (int i = 0; i < flows_number; i++) {
+
+					}
+
+				}
+
+
+
 			}
 			else {
 			// add to buffer
