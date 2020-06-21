@@ -241,7 +241,8 @@ int schedule_wrr() {
 	}
 	// write to stat file
 	for (int i = 0; i < flows_number; i++) {
-		fprintf(stat_filePointer, "%s %d %s %d %d\n", flows_array[i].Sadd_index, flows_array[i].Sport_index, flows_array[i].Dadd_index, flows_array[i].Dport_index, flows_array[i].numPkts);
+		float avg_delay = flows_array[i].sum_delay /flows_array[i].numPkts;
+		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f\n", flows_array[i].Sadd_index, flows_array[i].Sport_index, flows_array[i].Dadd_index, flows_array[i].Dport_index, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay);
 	}
 
 
@@ -405,6 +406,8 @@ int add_flow_to_buf(flow_struct *flow_pointer) {
 		flows_array[i].Sport_index = flow_pointer->Sport_index;
 		flows_array[i].Dport_index = flow_pointer->Dport_index;
 		flows_array[i].numPkts = 0;
+		flows_array[i].max_delay = 0;
+		flows_array[i].sum_delay = 0;
 		flows_number++;
 		if (flow_pointer->weight == 0) flows_array[i].weight = size;
 		else						   flows_array[i].weight = flow_pointer->weight;
@@ -436,6 +439,7 @@ void WRR_func() {
 	unsigned int i = 0;
 	bool out_packet = false;
 	//printf("Started WRR: %d %d %d\n",work_Length,work_weight,work_index);
+	long int delay;
 
 	if (work_index == -1) {
 		printf("Noor fucking first call %d\n",flows_number);
@@ -445,6 +449,10 @@ void WRR_func() {
 				work_weight = flows_array[i].weight;
 				packet_in_work = flows_array[work_index].head;
 				work_Length = packet_in_work->Length;
+				// update delay stat
+				delay = Timer - packet_in_work->Time;
+				if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
+				flows_array[i].sum_delay += delay;
 				fprintf(out_filePointer, "%ld: %ld\n",Timer, packet_in_work->PktID);
 				break;
 			}
@@ -491,6 +499,11 @@ void WRR_func() {
 			print_flows_array();
 		}
 		work_Length = packet_in_work->Length;
+		// update delay stat
+		delay = Timer - packet_in_work->Time + 1;
+		if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
+		flows_array[i].sum_delay += delay;
+
 		fprintf(out_filePointer, "%ld: %ld\n", Timer+1, packet_in_work->PktID);
 	}
 

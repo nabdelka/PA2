@@ -6,7 +6,11 @@ typedef struct flow_struct
 	char Sadd_index[MAX_IP_LENGTH+1], Dadd_index[MAX_IP_LENGTH+1];
 	unsigned int Sport_index, Dport_index;
 	int weight;
+	//stat
+	long int max_delay;
+	long int sum_delay;
 	int numPkts;
+
 	struct flow_index_struct *head;
 } flow_struct;
 
