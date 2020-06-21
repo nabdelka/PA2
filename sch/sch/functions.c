@@ -15,7 +15,7 @@ long int Timer = -1;
 unsigned int work_index=-1; // TODO fix
 int work_weight = 0; // TODO fix
 long int work_Length = 0;
-int Iteration = 350;
+int Iteration = 2;
 bool iter = false;
 // File names
 char *input_file = NULL;
@@ -88,7 +88,8 @@ int schedule_wrr() {
 					//printf("ameer is working\n");
 					do {
 						// WRR ITERATION
-						WRR_func();
+						if(schedule_type== RR_TYPE)	WRR_func();
+						else						DRR_func_try();
 						Timer++;
 					} while (Time > Timer);
 					// add to buffer
@@ -226,7 +227,8 @@ int schedule_wrr() {
 
 
 	while (work_index != -1) {
-		WRR_func();
+		if (schedule_type == RR_TYPE)	WRR_func();
+		else						DRR_func_try();
 		Timer++;
 	}
 
@@ -535,18 +537,41 @@ void print_flows_array() {
 
 
 
+void DRR_func_try() {
+	packet_struct* current_packet;
+	if (work_Length > 0) {
+		work_Length--;
+		return;
+	}
+	if (work_index == -1) {
+		work_index = 0;
+	}
+	for (int i = work_index; i <= flows_number; i++) {
+		if (i == flows_number) i = 0;
+		if (flows_array[i].head == NULL) {
+			flows_array[work_index].credit = 0;
+		}
+		else {
+			flows_array[i].credit = flows_array[i].credit + flows_array[i].weight;
+			current_packet = flows_array[i].head;
+			if (flows_array[i].credit >= current_packet->Length) {
+				printf("flow: %d   cridet=%d  length=%d\n",i, flows_array[i].credit , current_packet->Length);
+				work_index = i;
+				fprintf(out_filePointer, "%ld: %ld\n", Timer, current_packet->PktID);
+				flows_array[i].credit = flows_array[i].credit - current_packet->Length;
+				work_Length = current_packet->Length-1;
+				flows_array[i].head = current_packet->next;
+				free(current_packet);
+				return;
+				
+			}
+
+		}
+
+	}
 
 
-
-
-
-
-
-
-
-
-
-
+}
 
 
 
@@ -575,8 +600,8 @@ void DRR_func() {
 	if (work_index != -1) {
 		flows_array[work_index].credit = flows_array[work_index].credit + work_weight ;    
 		if (flows_array[work_index].credit >= packet_in_work->Length) {
-			//////////// print to file the packet//////////////////
-			flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length; 
+			fprintf(out_filePointer, "%ld: %ld\n", Timer, packet_in_work->PktID);
+			flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length;
 			dirty_packet = flows_array[work_index].head;
 			flows_array[work_index].head = dirty_packet->next;
 			free(dirty_packet);
@@ -614,7 +639,7 @@ void DRR_func() {
 			if (work_index != 1) {
 				flows_array[work_index].credit = flows_array[work_index].credit + work_weight;
 				if (flows_array[work_index].credit >= size * weight) {
-					//////////// print to file the packet//////////////////
+					fprintf(out_filePointer, "%ld: %ld\n", Timer, packet_in_work->PktID);
 					flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length;
 					dirty_packet = flows_array[work_index].head;
 					flows_array[work_index].head = dirty_packet->next;
