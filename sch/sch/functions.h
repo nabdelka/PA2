@@ -10,7 +10,7 @@ typedef struct flow_struct
 	long int max_delay;
 	long int sum_delay;
 	int numPkts;
-
+	long int credit;
 	struct flow_index_struct *head;
 } flow_struct;
 
