@@ -405,6 +405,7 @@ int add_flow_to_buf(flow_struct *flow_pointer) {
 		flows_array[i].Sport_index = flow_pointer->Sport_index;
 		flows_array[i].Dport_index = flow_pointer->Dport_index;
 		flows_array[i].numPkts = 0;
+		flows_array[i].credit = 0;
 		flows_number++;
 		if (flow_pointer->weight == 0) flows_array[i].weight = size;
 		else						   flows_array[i].weight = flow_pointer->weight;
@@ -515,3 +516,114 @@ void print_flows_array() {
 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void DRR_func() {
+	packet_struct* packet_in_work;
+	packet_struct* dirty_packet;
+	unsigned int i = 0;
+	bool out_packet = false;
+
+	if (work_index == -1) {
+		for (i = 0; i < flows_number; i++) {
+			if (flows_array[i].head != NULL) {
+				work_index = i;
+				work_weight = flows_array[i].weight;
+				packet_in_work = flows_array[work_index].head;
+				fprintf(out_filePointer, "%ld: %ld\n", Timer, packet_in_work->PktID);
+				break;
+			}
+		}
+	}
+	packet_in_work = flows_array[work_index].head;
+
+
+	if (work_index != -1) {
+		flows_array[work_index].credit = flows_array[work_index].credit + work_weight ;    
+		if (flows_array[work_index].credit >= packet_in_work->Length) {
+			//////////// print to file the packet//////////////////
+			flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length; 
+			dirty_packet = flows_array[work_index].head;
+			flows_array[work_index].head = dirty_packet->next;
+			free(dirty_packet);
+			if (flows_array[work_index].head == NULL) {
+				flows_array[work_index].credit = 0;
+			}
+			for (i = work_index + 1; i <= flows_number; i++) {
+				if (i == flows_number) i = 0; // cyclic
+
+				if (flows_array[i].head != NULL) {
+					work_index = i;
+					work_weight = flows_array[i].weight;
+					break;
+				}
+				else if (i == work_index) {
+					work_index = -1;
+					break;
+				}
+			}
+		}
+		else {
+			for (i = work_index + 1; i <= flows_number; i++) {
+				if (i == flows_number) i = 0; // cyclic
+
+				if (flows_array[i].head != NULL) {
+					work_index = i;
+					work_weight = flows_array[i].weight;
+					break;
+				}
+				else if (i == work_index) {
+					work_index = -1;
+					break;
+				}
+			}
+			if (work_index != 1) {
+				flows_array[work_index].credit = flows_array[work_index].credit + work_weight;
+				if (flows_array[work_index].credit >= size * weight) {
+					//////////// print to file the packet//////////////////
+					flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length;
+					dirty_packet = flows_array[work_index].head;
+					flows_array[work_index].head = dirty_packet->next;
+					free(dirty_packet);
+					if (flows_array[work_index].head == NULL) {
+						flows_array[work_index].credit = 0;
+					}
+					for (i = work_index + 1; i <= flows_number; i++) {
+						if (i == flows_number) i = 0; // cyclic
+
+						if (flows_array[i].head != NULL) {
+							work_index = i;
+							work_weight = flows_array[i].weight;
+							break;
+						}
+						else if (i == work_index) {
+							work_index = -1;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}

@@ -7,6 +7,7 @@ typedef struct flow_struct
 	unsigned int Sport_index, Dport_index;
 	int weight;
 	int numPkts;
+	long int credit;
 	struct flow_index_struct *head;
 } flow_struct;
 
