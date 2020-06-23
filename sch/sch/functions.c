@@ -536,8 +536,10 @@ void DRR_func_try() {
 				work_Length = current_packet->Length-1;
 				flows_array[i].head = current_packet->next;
 				free(current_packet);
+				if (flows_array[i].credit >= current_packet->Length) {
+					DRR_func_try();
+				}
 				return;
-				
 			}
 
 		}
