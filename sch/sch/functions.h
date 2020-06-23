@@ -24,16 +24,16 @@ typedef struct packet_sturct
 } packet_struct;
 
 
-int schedule_wrr();
+int schedule();
 bool check_args_valid();
 void get_sch_type(char *sch_type_str);
 void get_size(char *size_str);
 void get_file_names(char *name_str);
 packet_struct* create_packet(long int pktid, long int time, long int length);
-int add_flow_to_buf(int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport);
+int get_flow_index(int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport);
 void add_packet_to_buf(int index, packet_struct* packet_to_add);
 void WRR_func();
 void DRR_func();
-void DRR_func_try();
+void DRR_func();
 
 void print_flows_array();

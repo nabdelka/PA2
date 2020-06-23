@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 	// Generate file names
 	get_file_names(argv[2]);
 
-	schedule_wrr();
+	schedule();
 
 
 

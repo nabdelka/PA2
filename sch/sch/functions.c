@@ -8,15 +8,18 @@
 int schedule_type = UNINITIALIZED;
 int size = -1;
 int weight = 0;
-char Sadd[15], Dadd[15];
+char Sadd[MAX_IP_LENGTH+1], Dadd[MAX_IP_LENGTH+1];
 unsigned int Sport = 0, Dport = 0;
 long int PktID = 0, Time = 0, Length = 0;
 long int Timer = -1;
-unsigned int work_index=-1; // TODO fix
-int work_weight = 0; // TODO fix
+unsigned int work_index=-1; 
+int work_weight = 0;  
 long int work_Length = 0;
+// Debug
 int Iteration = 2;
 bool iter = false;
+long int print_time = 130809;
+bool print_stop = false;
 // File names
 char *input_file = NULL;
 char *stat_file = NULL;
@@ -27,12 +30,10 @@ FILE *out_filePointer;
 flow_struct flows_array[MAX_FLOWS_NUM];
 int flows_number = 0;
 
-int schedule_wrr() {
+int schedule() {
 
 	// Open file for read
 	FILE *in_filePointer;
-
-
 	errno_t err;
 	err = fopen_s(&in_filePointer, input_file, "r");
 	if (err != 0)
@@ -66,34 +67,40 @@ int schedule_wrr() {
 
 			if (Time > Timer) {
 				if (flows_number == 0) { // Initial case - first line handling
-					printf("AMEER is shit just at the begining\n");
-					Timer = Time;
 
-					//Pointer for next packer
+					Timer = Time;
+					//Pointer for next packet
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
-					index_to_add = add_flow_to_buf(weight, Sadd, Dadd, Sport, Dport);
+					index_to_add = get_flow_index(weight, Sadd, Dadd, Sport, Dport);
 					add_packet_to_buf(index_to_add, packet_ptr);
-
-					//print_flows_array();
-
 
 					//continue reading
 					goto continue_reading;
 				}
 				else {
-					//printf("ameer is working\n");
+
 					do {
-						// WRR ITERATION
+						// time ITERATION
+						if (Timer == print_time) {
+							print_flows_array();
+							//if(print_stop) return 0;
+						}
+
 						if(schedule_type== RR_TYPE)	WRR_func();
-						else						DRR_func_try();
+						else						DRR_func();
+
+						if (Timer == print_time) {
+							print_flows_array();
+							if (print_stop) return 0;
+						}
 						Timer++;
 					} while (Time > Timer);
 
 					//Pointer for next packer
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
-					index_to_add = add_flow_to_buf(weight, Sadd, Dadd, Sport, Dport);
+					index_to_add = get_flow_index(weight, Sadd, Dadd, Sport, Dport);
 					add_packet_to_buf(index_to_add, packet_ptr);
 
 					// continue reading
@@ -119,7 +126,7 @@ int schedule_wrr() {
 				packet_struct* packet_ptr;
 				packet_ptr = create_packet(PktID, Time, Length);
 
-				index_to_add = add_flow_to_buf(weight, Sadd, Dadd, Sport, Dport);
+				index_to_add = get_flow_index(weight, Sadd, Dadd, Sport, Dport);
 				add_packet_to_buf(index_to_add, packet_ptr);
 			//continue reading
 				goto continue_reading;
@@ -217,8 +224,16 @@ int schedule_wrr() {
 
 
 	while (work_index != -1) {
+		if (Timer == print_time) {
+			print_flows_array();
+			//return 0;
+		}
 		if (schedule_type == RR_TYPE)	WRR_func();
-		else						DRR_func_try();
+		else						    DRR_func();
+		if (Timer == print_time) {
+			print_flows_array();
+			//return 0;
+		}
 		Timer++;
 	}
 
@@ -257,32 +272,7 @@ int schedule_wrr() {
 }
 
 
-int schedule() {
-	// check schedule type: WRR/DRR and call the relevand scheduler
-	if (schedule_type == RR_TYPE) return schedule_wrr();
-		
-	else if(schedule_type == DRR_TYPE){
-		// TODO implement DRR func
 
-	}
-	else {
-		printf("-E- Unexpected schedule type\n");
-		return -1;
-	}
-}
-
-
-
-// function that create the next packet //
-packet_struct* create_packet(long int pktid , long int time , long int length) {
-	packet_struct* packet_ptr = (packet_struct*)malloc(sizeof(packet_struct));
-	// TODO check if null
-	packet_ptr->Length = length;
-	packet_ptr->Time = time;
-	packet_ptr->PktID = pktid;
-	packet_ptr->next = NULL;
-	return packet_ptr;
-}
 
 
 bool check_args_valid() {
@@ -366,8 +356,8 @@ void get_file_names(char *name_str) {
 }
 
 
-
-int add_flow_to_buf( int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport) {
+// Flows & packets
+int get_flow_index( int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport) {
 	int i = 0, scom, dcom;
 	for (i = 0; i < flows_number; i++) {
 		scom = strcmp(sadd, flows_array[i].Sadd);
@@ -394,7 +384,16 @@ int add_flow_to_buf( int weight_, char *sadd, char *dadd, unsigned int sport, un
 
 	return i;
 }
-
+// function that create the next packet //
+packet_struct* create_packet(long int pktid, long int time, long int length) {
+	packet_struct* packet_ptr = (packet_struct*)malloc(sizeof(packet_struct));
+	// TODO check if null
+	packet_ptr->Length = length;
+	packet_ptr->Time = time;
+	packet_ptr->PktID = pktid;
+	packet_ptr->next = NULL;
+	return packet_ptr;
+}
 void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 	packet_struct* packet_in_chain;
 	if (flows_array[index].head == NULL) {
@@ -487,14 +486,67 @@ void WRR_func() {
 
 }
 
+
+
+void DRR_func() {
+	packet_struct* current_packet;
+
+	if (work_Length > 0) {
+		// Sending a packet - wait till finish
+		work_Length--;
+		return;
+	}
+	if (work_index == -1) {
+		// Initial case init for DRR
+		work_index = 0;
+	}
+	bool new_cycle = false;
+	for (int i = work_index; i <= flows_number; i++) {
+		if (i == flows_number) {
+			// TODO need to identify empty buffer
+			i = 0; new_cycle = true;
+		}
+		if (flows_array[i].head == NULL) {
+			// Nothing to send
+			if (Timer == print_time && i == 3) printf("reset credit for 3\n", flows_array[i].credit);
+
+			flows_array[i].credit = 0;
+			continue;
+		}
+		else {
+			if ((i != work_index) || new_cycle) {
+				if (Timer == print_time && i == 3) printf("work_idx = %d   updating credit of flow 3\n%ld ->", work_index,flows_array[i].credit);
+				flows_array[i].credit = flows_array[i].credit + flows_array[i].weight;
+				if (Timer == print_time && i == 3) printf(" %ld\n", flows_array[i].credit);
+
+			}
+			current_packet = flows_array[i].head;
+			if (flows_array[i].credit >= current_packet->Length) {
+				work_index = i;
+				fprintf(out_filePointer, "%ld: %ld\n", Timer, current_packet->PktID);
+				flows_array[i].credit = flows_array[i].credit - current_packet->Length;
+				work_Length = current_packet->Length-1;
+				flows_array[i].head = current_packet->next;
+				free(current_packet);
+				return;
+			}
+		}
+	}
+}
+
+
+
+
+// Debug
 void print_flows_array() {
-	printf("We have %d flows.\n", flows_number);
+	printf("We have %d flows at time %d.\n", flows_number,Timer);
 	for (int i = 0; i < flows_number; i++) {
-		if (flows_array[i].head != NULL) printf("# Flow at index %d:\n", i);
+		if (flows_array[i].head != NULL) printf("# Flow at index %d - W = %d:\n", i, flows_array[i].weight);
 		else {
 			printf("# Flow at index %d has no packets\n\n", i);
 			continue;
 		}
+		printf("# Credits = %ld\n", flows_array[i].credit);
 		packet_struct* packet_ptr = flows_array[i].head;
 		do {
 			printf("   \% PktID = %d    Length = %d\n", packet_ptr->PktID, packet_ptr->Length);
@@ -506,138 +558,3 @@ void print_flows_array() {
 
 }
 
-
-
-
-
-
-
-void DRR_func_try() {
-	packet_struct* current_packet;
-	if (work_Length > 0) {
-		work_Length--;
-		return;
-	}
-	if (work_index == -1) {
-		work_index = 0;
-	}
-	for (int i = work_index; i <= flows_number; i++) {
-		if (i == flows_number) i = 0;
-		if (flows_array[i].head == NULL) {
-			flows_array[work_index].credit = 0;
-		}
-		else {
-			flows_array[i].credit = flows_array[i].credit + flows_array[i].weight;
-			current_packet = flows_array[i].head;
-			if (flows_array[i].credit >= current_packet->Length) {
-				work_index = i;
-				fprintf(out_filePointer, "%ld: %ld\n", Timer, current_packet->PktID);
-				flows_array[i].credit = flows_array[i].credit - current_packet->Length;
-				work_Length = current_packet->Length-1;
-				flows_array[i].head = current_packet->next;
-				free(current_packet);
-				if (flows_array[i].credit >= current_packet->Length) {
-					DRR_func_try();
-				}
-				return;
-			}
-
-		}
-
-	}
-
-
-}
-
-
-
-
-
-void DRR_func() {
-	packet_struct* packet_in_work;
-	packet_struct* dirty_packet;
-	unsigned int i = 0;
-	bool out_packet = false;
-
-	if (work_index == -1) {
-		for (i = 0; i < flows_number; i++) {
-			if (flows_array[i].head != NULL) {
-				work_index = i;
-				work_weight = flows_array[i].weight;
-				packet_in_work = flows_array[work_index].head;
-				fprintf(out_filePointer, "%ld: %ld\n", Timer, packet_in_work->PktID);
-				break;
-			}
-		}
-	}
-	packet_in_work = flows_array[work_index].head;
-
-
-	if (work_index != -1) {
-		flows_array[work_index].credit = flows_array[work_index].credit + work_weight ;    
-		if (flows_array[work_index].credit >= packet_in_work->Length) {
-			fprintf(out_filePointer, "%ld: %ld\n", Timer, packet_in_work->PktID);
-			flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length;
-			dirty_packet = flows_array[work_index].head;
-			flows_array[work_index].head = dirty_packet->next;
-			free(dirty_packet);
-			if (flows_array[work_index].head == NULL) {
-				flows_array[work_index].credit = 0;
-			}
-			for (i = work_index + 1; i <= flows_number; i++) {
-				if (i == flows_number) i = 0; // cyclic
-
-				if (flows_array[i].head != NULL) {
-					work_index = i;
-					work_weight = flows_array[i].weight;
-					break;
-				}
-				else if (i == work_index) {
-					work_index = -1;
-					break;
-				}
-			}
-		}
-		else {
-			for (i = work_index + 1; i <= flows_number; i++) {
-				if (i == flows_number) i = 0; // cyclic
-
-				if (flows_array[i].head != NULL) {
-					work_index = i;
-					work_weight = flows_array[i].weight;
-					break;
-				}
-				else if (i == work_index) {
-					work_index = -1;
-					break;
-				}
-			}
-			if (work_index != 1) {
-				flows_array[work_index].credit = flows_array[work_index].credit + work_weight;
-				if (flows_array[work_index].credit >= size * weight) {
-					fprintf(out_filePointer, "%ld: %ld\n", Timer, packet_in_work->PktID);
-					flows_array[work_index].credit = flows_array[work_index].credit - packet_in_work->Length;
-					dirty_packet = flows_array[work_index].head;
-					flows_array[work_index].head = dirty_packet->next;
-					free(dirty_packet);
-					if (flows_array[work_index].head == NULL) {
-						flows_array[work_index].credit = 0;
-					}
-					for (i = work_index + 1; i <= flows_number; i++) {
-						if (i == flows_number) i = 0; // cyclic
-
-						if (flows_array[i].head != NULL) {
-							work_index = i;
-							work_weight = flows_array[i].weight;
-							break;
-						}
-						else if (i == work_index) {
-							work_index = -1;
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-}
