@@ -68,14 +68,11 @@ int schedule_wrr() {
 				if (flows_number == 0) { // Initial case - first line handling
 					printf("AMEER is shit just at the begining\n");
 					Timer = Time;
-					// add to buffer
-					//Pointer for next flow
-					flow_struct last_flow;
-					create_flow(&last_flow,weight, Sadd, Dadd, Sport, Dport);
+
 					//Pointer for next packer
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
-					index_to_add = add_flow_to_buf(&last_flow);
+					index_to_add = add_flow_to_buf(weight, Sadd, Dadd, Sport, Dport);
 					add_packet_to_buf(index_to_add, packet_ptr);
 
 					//print_flows_array();
@@ -92,14 +89,11 @@ int schedule_wrr() {
 						else						DRR_func_try();
 						Timer++;
 					} while (Time > Timer);
-					// add to buffer
-					//Pointer for next flow
-					flow_struct last_flow;
-					create_flow(&last_flow, weight, Sadd, Dadd, Sport, Dport);
+
 					//Pointer for next packer
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
-					index_to_add = add_flow_to_buf(&last_flow);
+					index_to_add = add_flow_to_buf(weight, Sadd, Dadd, Sport, Dport);
 					add_packet_to_buf(index_to_add, packet_ptr);
 
 					// continue reading
@@ -121,15 +115,11 @@ int schedule_wrr() {
 			}
 			else {
 			// add to buffer
-				//printf("Adding fucking\n");
-				//Pointer for next flow
-				flow_struct flow_ptr;
-				create_flow(&flow_ptr, weight, Sadd, Dadd, Sport, Dport);
 				//Pointer for next packer
 				packet_struct* packet_ptr;
 				packet_ptr = create_packet(PktID, Time, Length);
 
-				index_to_add = add_flow_to_buf(&flow_ptr);
+				index_to_add = add_flow_to_buf(weight, Sadd, Dadd, Sport, Dport);
 				add_packet_to_buf(index_to_add, packet_ptr);
 			//continue reading
 				goto continue_reading;
@@ -280,23 +270,7 @@ int schedule() {
 		return -1;
 	}
 }
-// function that create the next flow //
-flow_struct* create_flow(flow_struct* flow_ptr, int weight_ , char *sadd, char *dadd, unsigned int sport, unsigned int dport ) {
 
-
-	errno_t err;
-	err = strcpy_s(flow_ptr->Sadd_index, MAX_IP_LENGTH + 1, sadd); // TODO check err
-	if (err != 0) printf("Err copy 1\n");
-	err = strcpy_s(flow_ptr->Dadd_index, MAX_IP_LENGTH + 1, dadd); // TODO check err
-	if (err != 0) printf("Err copy 2\n");
-
-
-	flow_ptr->Dport_index = dport;
-	flow_ptr->Sport_index = sport;
-	flow_ptr->head = NULL;
-	flow_ptr->weight = weight_;
-	return flow_ptr;
-}
 
 
 // function that create the next packet //
@@ -393,29 +367,30 @@ void get_file_names(char *name_str) {
 
 
 
-int add_flow_to_buf(flow_struct *flow_pointer) {
+int add_flow_to_buf( int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport) {
 	int i = 0, scom, dcom;
 	for (i = 0; i < flows_number; i++) {
-		scom = strcmp(flow_pointer->Sadd_index, flows_array[i].Sadd_index);
-		dcom = strcmp(flow_pointer->Dadd_index, flows_array[i].Dadd_index);
-		if (scom == 0 && dcom == 0 && flow_pointer->Sport_index == flows_array[i].Sport_index && flow_pointer->Dport_index == flows_array[i].Dport_index) {
-			break;
-		}
+		scom = strcmp(sadd, flows_array[i].Sadd_index);
+		dcom = strcmp(dadd, flows_array[i].Dadd_index);
+		if (scom == 0 && dcom == 0 && sport == flows_array[i].Sport_index && dport == flows_array[i].Dport_index) return i; // The flow is exist
 	}
+
 	if (i == flows_number) {
-		strcpy_s(flows_array[i].Sadd_index, sizeof(flow_pointer->Sadd_index), flow_pointer->Sadd_index);
-		strcpy_s(flows_array[i].Dadd_index, sizeof(flow_pointer->Dadd_index), flow_pointer->Dadd_index);
-		flows_array[i].Sport_index = flow_pointer->Sport_index;
-		flows_array[i].Dport_index = flow_pointer->Dport_index;
+		strcpy_s(flows_array[i].Sadd_index, sizeof(flows_array[i].Sadd_index), sadd);
+		strcpy_s(flows_array[i].Dadd_index, sizeof(flows_array[i].Dadd_index), dadd);
+		flows_array[i].Sport_index = sport;
+		flows_array[i].Dport_index = dport;
+		flows_array[i].weight = (weight_ == 0) ? size : weight_; // default weight
+
+		// Init
 		flows_array[i].numPkts = 0;
 		flows_array[i].max_delay = 0;
 		flows_array[i].sum_delay = 0;
 		flows_array[i].credit = 0;
-		flows_number++;
-		if (flow_pointer->weight == 0) flows_array[i].weight = size;
-		else						   flows_array[i].weight = flow_pointer->weight;
-		
+
+		flows_number++;		
 	}
+	else printf("-E- Unexpected flow index\n");
 
 	return i;
 }
@@ -555,7 +530,6 @@ void DRR_func_try() {
 			flows_array[i].credit = flows_array[i].credit + flows_array[i].weight;
 			current_packet = flows_array[i].head;
 			if (flows_array[i].credit >= current_packet->Length) {
-				printf("flow: %d   cridet=%d  length=%d\n",i, flows_array[i].credit , current_packet->Length);
 				work_index = i;
 				fprintf(out_filePointer, "%ld: %ld\n", Timer, current_packet->PktID);
 				flows_array[i].credit = flows_array[i].credit - current_packet->Length;
