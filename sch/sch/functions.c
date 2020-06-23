@@ -234,7 +234,7 @@ int schedule_wrr() {
 	// write to stat file
 	for (int i = 0; i < flows_number; i++) {
 		float avg_delay = flows_array[i].sum_delay /flows_array[i].numPkts;
-		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f\n", flows_array[i].Sadd_index, flows_array[i].Sport_index, flows_array[i].Dadd_index, flows_array[i].Dport_index, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay);
+		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f\n", flows_array[i].Sadd, flows_array[i].Sport, flows_array[i].Dadd, flows_array[i].Dport, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay);
 	}
 
 
@@ -370,16 +370,16 @@ void get_file_names(char *name_str) {
 int add_flow_to_buf( int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport) {
 	int i = 0, scom, dcom;
 	for (i = 0; i < flows_number; i++) {
-		scom = strcmp(sadd, flows_array[i].Sadd_index);
-		dcom = strcmp(dadd, flows_array[i].Dadd_index);
-		if (scom == 0 && dcom == 0 && sport == flows_array[i].Sport_index && dport == flows_array[i].Dport_index) return i; // The flow is exist
+		scom = strcmp(sadd, flows_array[i].Sadd);
+		dcom = strcmp(dadd, flows_array[i].Dadd);
+		if (scom == 0 && dcom == 0 && sport == flows_array[i].Sport && dport == flows_array[i].Dport) return i; // The flow is exist
 	}
 
 	if (i == flows_number) {
-		strcpy_s(flows_array[i].Sadd_index, sizeof(flows_array[i].Sadd_index), sadd);
-		strcpy_s(flows_array[i].Dadd_index, sizeof(flows_array[i].Dadd_index), dadd);
-		flows_array[i].Sport_index = sport;
-		flows_array[i].Dport_index = dport;
+		strcpy_s(flows_array[i].Sadd, sizeof(flows_array[i].Sadd), sadd);
+		strcpy_s(flows_array[i].Dadd, sizeof(flows_array[i].Dadd), dadd);
+		flows_array[i].Sport = sport;
+		flows_array[i].Dport = dport;
 		flows_array[i].weight = (weight_ == 0) ? size : weight_; // default weight
 
 		// Init
