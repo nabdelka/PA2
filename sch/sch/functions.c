@@ -377,6 +377,7 @@ int get_flow_index( int weight_, char *sadd, char *dadd, unsigned int sport, uns
 		flows_array[i].credit = 0;
 		flows_array[i].current_backets_num = 0;
 		flows_array[i].maxbuf = 0;
+		flows_array[i].sum = 0;
 
 		flows_number++;		
 	}
@@ -573,12 +574,28 @@ void print_flows_array() {
 
 
 void packets_num() {
+	packet_struct* packet_in_chain;
 	for (int i = 0; i <= flows_number; i++) {
 		if (flows_array[i].current_backets_num > flows_array[i].maxbuf) {
 			flows_array[i].maxbuf = flows_array[i].current_backets_num;
 		}
+		if (flows_array[i].head == NULL) {
+			continue;
+		}
+		else
+		{
+			packet_in_chain = flows_array[i].head;
+			flows_array[i].sum++;
+			while (packet_in_chain->next != NULL) {
+				flows_array[i].sum++;
+			}
+		}
 	}
 }
+
+
+
+
 
 double get_avg_delay(int index) {
 	double avg_delay = (double)flows_array[index].sum_delay / (double)flows_array[index].numPkts;
