@@ -17,12 +17,8 @@ int work_weight = 0;
 long int work_Length = 0;
 long int last_pkt_time = 0;
 long int first_pkt_time = -1;
-// Debug
-int Iteration = 2;
-bool iter = false;
-long int print_time = 130809;
-bool print_stop = false;
-// File names
+
+// Files
 char *input_file = NULL;
 char *stat_file = NULL;
 char *output_file = NULL;
@@ -61,18 +57,18 @@ int schedule() {
 	// Read file
 	while ((c = getc(in_filePointer)) != EOF) {
 
-
-		// restart for the next packet//
+		// restart for the next packet (line)//
 		if (c == '\n') {
 
 			if (Time > Timer) {
 				if (flows_number == 0) { // Initial case - first line handling
 
-					packets_num();
+					update_packets_num();
 					Timer = Time;
 					//Pointer for next packet
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
+					if (packet_ptr == NULL) return -1;
 					index_to_add = get_flow_index(weight, Sadd, Dadd, Sport, Dport);
 					add_packet_to_buf(index_to_add, packet_ptr);
 
@@ -83,52 +79,31 @@ int schedule() {
 
 					do {
 						// time ITERATION
-						if (Timer == print_time) {
-							//sprint_flows_array();
-							//if(print_stop) return 0;
-						}
 
-						if(schedule_type== RR_TYPE)	WRR_func();
-						else						DRR_func();
+						if(schedule_type== RR_TYPE)	WRR_iteration();
+						else						DRR_iteration();
 
-						if (Timer == print_time) {
-							//print_flows_array();
-							if (print_stop) return 0;
-						}
-						packets_num();
+						update_packets_num();
 						Timer++;
 					} while (Time > Timer);
 
 					//Pointer for next packer
 					packet_struct* packet_ptr;
 					packet_ptr = create_packet(PktID, Time, Length);
+					if (packet_ptr == NULL) return -1;
 					index_to_add = get_flow_index(weight, Sadd, Dadd, Sport, Dport);
 					add_packet_to_buf(index_to_add, packet_ptr);
 
 					// continue reading
-					// TODO remove
-					Iteration--;
-					if (Iteration == 0 && iter)
-					{
-						//print_flows_array();
-						printf("fuck you\n");
-						return -1;
-					}
-					goto continue_reading;
-
-					
-					
+					goto continue_reading;	
 				}
-
-
-
 			}
 			else {
 			// add to buffer
 				//Pointer for next packer
 				packet_struct* packet_ptr;
 				packet_ptr = create_packet(PktID, Time, Length);
-
+				if (packet_ptr == NULL) return -1;
 				index_to_add = get_flow_index(weight, Sadd, Dadd, Sport, Dport);
 				add_packet_to_buf(index_to_add, packet_ptr);
 			//continue reading
@@ -227,17 +202,11 @@ int schedule() {
 
 
 	while (!buffer_is_empty()) {
-		if (Timer == print_time) {
-			//print_flows_array();
-			//return 0;
-		}
-		if (schedule_type == RR_TYPE)	WRR_func();
-		else						    DRR_func();
-		if (Timer == print_time) {
-			//print_flows_array();
-			//return 0;
-		}
-		packets_num();
+
+		if (schedule_type == RR_TYPE)	WRR_iteration();
+		else						    DRR_iteration();
+
+		update_packets_num();
 		Timer++;
 	}
 
@@ -397,7 +366,10 @@ int get_flow_index( int weight_, char *sadd, char *dadd, unsigned int sport, uns
 // function that create the next packet //
 packet_struct* create_packet(long int pktid, long int time, long int length) {
 	packet_struct* packet_ptr = (packet_struct*)malloc(sizeof(packet_struct));
-	// TODO check if null
+	if (packet_ptr == NULL) {
+		printf("-E- Error while allocating memory\n");
+		return NULL;
+	}
 	packet_ptr->Length = length;
 	packet_ptr->Time = time;
 	packet_ptr->PktID = pktid;
@@ -424,7 +396,7 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 }
 
 
-void WRR_func() {
+void WRR_iteration() {
 	packet_struct* packet_in_work;
 	packet_struct* dirty_packet;
 	unsigned int i = 0;
@@ -445,7 +417,6 @@ void WRR_func() {
 				fprintf(out_filePointer, "%ld: %ld\n",Timer, packet_in_work->PktID);
 				flows_array[work_index].current_backets_num--;
 				last_pkt_time = Timer + work_Length;
-
 
 
 				break;
@@ -509,7 +480,7 @@ void WRR_func() {
 
 
 
-void DRR_func() {
+void DRR_iteration() {
 	packet_struct* current_packet;
 
 	if (work_Length > 0) {
@@ -587,7 +558,7 @@ void print_flows_array() {
 
 
 
-void packets_num() {
+void update_packets_num() {
 	packet_struct* packet_in_chain;
 	for (int i = 0; i < flows_number; i++) {
 		if (flows_array[i].current_backets_num > flows_array[i].max_buf) {

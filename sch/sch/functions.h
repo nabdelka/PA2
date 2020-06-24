@@ -14,8 +14,6 @@ typedef struct flow_struct
 	long int max_buf ;
 	long int sum_buf;
 	long int current_backets_num ;
-	long int first_pkt_time;
-	long int last_pkt_time;
 	int numPkts;
 	// List
 	struct flow_index_struct *head;
@@ -38,10 +36,9 @@ bool get_file_names(char *name_str);
 packet_struct* create_packet(long int pktid, long int time, long int length);
 int get_flow_index(int weight_, char *sadd, char *dadd, unsigned int sport, unsigned int dport);
 void add_packet_to_buf(int index, packet_struct* packet_to_add);
-void WRR_func();
-void DRR_func();
-void DRR_func();
+void WRR_iteration();
+void DRR_iteration();
 
 void print_flows_array();
 bool buffer_is_empty();
-void packets_num();
+void update_packets_num();
