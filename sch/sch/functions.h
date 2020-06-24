@@ -11,7 +11,8 @@ typedef struct flow_struct
 	//stat
 	long int max_delay;
 	long int sum_delay;
-	long int maxbuf;
+	long int maxbuf ;
+	long int current_backets_num ;
 	int numPkts;
 	struct flow_index_struct *head;
 } flow_struct;
@@ -39,4 +40,4 @@ void DRR_func();
 
 void print_flows_array();
 bool buffer_is_empty();
-int packets_num(int index)
+void backets_num();

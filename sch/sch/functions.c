@@ -67,6 +67,7 @@ int schedule() {
 			if (Time > Timer) {
 				if (flows_number == 0) { // Initial case - first line handling
 
+					backets_num();
 					Timer = Time;
 					//Pointer for next packet
 					packet_struct* packet_ptr;
@@ -93,6 +94,7 @@ int schedule() {
 							//print_flows_array();
 							if (print_stop) return 0;
 						}
+						backets_num();
 						Timer++;
 					} while (Time > Timer);
 
@@ -233,6 +235,7 @@ int schedule() {
 			//print_flows_array();
 			//return 0;
 		}
+		backets_num();
 		Timer++;
 	}
 
@@ -376,6 +379,8 @@ int get_flow_index( int weight_, char *sadd, char *dadd, unsigned int sport, uns
 		flows_array[i].max_delay = 0;
 		flows_array[i].sum_delay = 0;
 		flows_array[i].credit = 0;
+		flows_array[i].current_backets_num = 0;
+		flows_array[i].maxbuf = 0;
 
 		flows_number++;		
 	}
@@ -411,6 +416,7 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 	if (maxbf > flows_array[index].maxbuf) {
 		flows_array[index].maxbuf = maxbf;
 	}
+	flows_array[index].current_backets_num++;
 }
 
 
@@ -451,6 +457,7 @@ void WRR_func() {
 		dirty_packet = flows_array[work_index].head;
 		flows_array[work_index].head = dirty_packet->next;
 		free(dirty_packet);
+		flows_array[work_index].current_backets_num--;
 		work_weight--;
 
 
@@ -532,6 +539,7 @@ void DRR_func() {
 				work_Length = current_packet->Length-1;
 				flows_array[i].head = current_packet->next;
 				free(current_packet);
+				flows_array[i].current_backets_num--;
 				return;
 			}
 		}
@@ -566,21 +574,11 @@ void print_flows_array() {
 }
 
 
-int packets_num(int index) {
-	packet_struct* packet_in_chain;
-	long int counter=0;
-	if (flows_array[index].head == NULL) {
-		counter=0;
-	}
-	else {
-		packet_in_chain = flows_array[index].head;
-		counter++;
-		while (packet_in_chain->next != NULL) {
-			packet_in_chain = packet_in_chain->next;
-			counter++;
+
+void backets_num() {
+	for (int i = 0; i <= flows_number; i++) {
+		if (flows_array[i].current_backets_num > flows_array[i].maxbuf) {
+			flows_array[i].maxbuf = flows_array[i].current_backets_num;
 		}
 	}
-	return counter;
 }
-
-
