@@ -59,11 +59,10 @@ int schedule() {
 	// Read file
 	while ((c = getc(in_filePointer)) != EOF) {
 
-		//printf("space = %d got char: %c\n", space, c);
 
 		// restart for the next packet//
 		if (c == '\n') {
-			//printf("-I- [%d] Got packet %ld at time %ld length: %ld %s %s %d %d - w = %d\n",Timer,PktID, Time, Length, Sadd, Dadd,Sport,Dport,weight);
+			//printf("-I- [%d] Got packet %ld at time %ld length: %ld %s %s %d %d - w = %d\n",Timer,PktID, Time, Length, Sadd, Dadd,Sport,Dport,weight); TODO remove
 
 			if (Time > Timer) {
 				if (flows_number == 0) { // Initial case - first line handling
@@ -248,7 +247,11 @@ int schedule() {
 	}
 	// write to stat file
 	for (int i = 0; i < flows_number; i++) {
-		float avg_delay = flows_array[i].sum_delay /flows_array[i].numPkts;
+		double avg_delay = (double)flows_array[i].sum_delay /(double)flows_array[i].numPkts;
+		double avv_1000 = avg_delay * 1000;
+		long int avv = (int)avv_1000;
+		printf("%lf / %lf = %.3lf %d\n", (double)flows_array[i].sum_delay, (double)flows_array[i].numPkts, avg_delay, avv);
+
 		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f\n", flows_array[i].Sadd, flows_array[i].Sport, flows_array[i].Dadd, flows_array[i].Dport, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay);
 	}
 
@@ -475,8 +478,7 @@ void WRR_func() {
 		work_Length = packet_in_work->Length;
 		// update delay stat
 		delay = Timer - packet_in_work->Time + 1;
-		if (delay == 47964) printf("[1 47964] why not added to flow [%d] pkt [%d]\n", work_index, packet_in_work->PktID);
-		if (delay == 195381) printf("[1 195381] why not added to flow [%d] pkt [%d]\n", work_index, packet_in_work->PktID);
+
 
 		
 		if (delay > flows_array[work_index].max_delay) flows_array[work_index].max_delay = delay;
