@@ -64,7 +64,6 @@ int schedule() {
 
 		// restart for the next packet//
 		if (c == '\n') {
-			//printf("-I- [%d] Got packet %ld at time %ld length: %ld %s %s %d %d - w = %d\n",Timer,PktID, Time, Length, Sadd, Dadd,Sport,Dport,weight); TODO remove
 
 			if (Time > Timer) {
 				if (flows_number == 0) { // Initial case - first line handling
@@ -107,6 +106,7 @@ int schedule() {
 					add_packet_to_buf(index_to_add, packet_ptr);
 
 					// continue reading
+					// TODO remove
 					Iteration--;
 					if (Iteration == 0 && iter)
 					{
@@ -316,7 +316,6 @@ void get_sch_type(char *sch_type_str) {
 void get_size(char *size_str) {
 
 	size = atoi(size_str);
-	printf("Got size %d\n", size);
 
 }
 void get_file_names(char *name_str) {
@@ -352,7 +351,10 @@ void get_file_names(char *name_str) {
 		strcat_s(input_file, name_len + 8, "_in.txt");
 		strcat_s(stat_file, name_len + 10, "_stat.txt");
 		strcat_s(output_file, name_len + 9, "_out.txt");
-
+		return true;
+	}
+	else {
+		return false;
 	}
 
 }
@@ -427,7 +429,6 @@ void WRR_func() {
 	packet_struct* dirty_packet;
 	unsigned int i = 0;
 	bool out_packet = false;
-	//printf("Started WRR: %d %d %d\n",work_Length,work_weight,work_index);
 	long int delay;
 
 	if (work_index == -1) {
@@ -525,7 +526,6 @@ void DRR_func() {
 	for (int i = work_index; i <= flows_number; i++) {
 		
 		if (i == flows_number) {
-			// TODO need to identify empty buffer
 			i = 0; new_cycle = true;
 		}
 		if (flows_array[i].head == NULL) {
@@ -608,11 +608,4 @@ void packets_num() {
 
 
 
-double get_avg_delay(int index) {
-	double avg_delay = (double)flows_array[index].sum_delay / (double)flows_array[index].numPkts;
-	long int avg_int = (int)avg_delay;
-	double avg_diff = avg_delay - avg_int;
-	avg_diff = avg_diff * 1000;
-	printf("%lf / %lf = %.3lf %d\n", (double)flows_array[index].sum_delay, (double)flows_array[index].numPkts, avg_delay, (int)avg_diff);
 
-}

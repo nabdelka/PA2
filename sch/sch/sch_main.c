@@ -9,7 +9,7 @@
 int main(int argc, char *argv[]) {
 
 	if (argc != 4) {
-		printf("Please provide arguments\n");
+		printf("Usage: sch.exe <sch_type> <name> <size>\n");
 		return -1;
 	}
 
@@ -21,12 +21,7 @@ int main(int argc, char *argv[]) {
 	// Generate file names
 	get_file_names(argv[2]);
 
-	schedule();
-
-
-
-	printf("Weeeeeee\n");
-	return 0;
+	return schedule();
 }
 
 
