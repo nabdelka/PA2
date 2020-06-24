@@ -14,6 +14,7 @@ typedef struct flow_struct
 	long int maxbuf ;
 	long int current_backets_num ;
 	int numPkts;
+	long int sum;
 	struct flow_index_struct *head;
 } flow_struct;
 
