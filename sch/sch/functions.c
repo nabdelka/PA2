@@ -318,7 +318,7 @@ void get_size(char *size_str) {
 	size = atoi(size_str);
 
 }
-void get_file_names(char *name_str) {
+bool get_file_names(char *name_str) {
 	int name_len = strlen(name_str);
 	// Dynamic memory allocation
 	input_file = (char*)malloc(name_len + 8);
