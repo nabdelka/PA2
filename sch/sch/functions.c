@@ -392,6 +392,7 @@ packet_struct* create_packet(long int pktid, long int time, long int length) {
 }
 void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 	packet_struct* packet_in_chain;
+	int maxbf;
 	if (flows_array[index].head == NULL) {
 		flows_array[index].head = packet_to_add;
 	}
@@ -403,6 +404,10 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 		packet_in_chain->next = packet_to_add;
 	}
 	flows_array[index].numPkts++;
+	maxbf = packets_num(index);
+	if (maxbf > flows_array[index].maxbuf) {
+		flows_array[index].maxbuf = maxbf;
+	}
 }
 
 
@@ -557,4 +562,23 @@ void print_flows_array() {
 	}
 
 }
+
+
+int packets_num(int index) {
+	packet_struct* packet_in_chain;
+	long int counter=0;
+	if (flows_array[index].head == NULL) {
+		counter=0;
+	}
+	else {
+		packet_in_chain = flows_array[index].head;
+		counter++;
+		while (packet_in_chain->next != NULL) {
+			packet_in_chain = packet_in_chain->next;
+			counter++;
+		}
+	}
+	return counter;
+}
+
 
