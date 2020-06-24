@@ -248,9 +248,10 @@ int schedule() {
 	// write to stat file
 	for (int i = 0; i < flows_number; i++) {
 		double avg_delay = (double)flows_array[i].sum_delay /(double)flows_array[i].numPkts;
-		double avv_1000 = avg_delay * 1000;
-		long int avv = (int)avv_1000;
-		printf("%lf / %lf = %.3lf %d\n", (double)flows_array[i].sum_delay, (double)flows_array[i].numPkts, avg_delay, avv);
+		long int avg_int = (int)avg_delay;
+		double avg_diff = avg_delay - avg_int;
+		avg_diff = avg_diff * 1000;
+		printf("%lf / %lf = %.3lf %d\n", (double)flows_array[i].sum_delay, (double)flows_array[i].numPkts, avg_delay, (int)avg_diff);
 
 		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f\n", flows_array[i].Sadd, flows_array[i].Sport, flows_array[i].Dadd, flows_array[i].Dport, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay);
 	}
@@ -431,8 +432,6 @@ void WRR_func() {
 				work_Length = packet_in_work->Length;
 				// update delay stat
 				delay = Timer - packet_in_work->Time;
-				if (delay == 47964) printf("[2 47964] why not added to flow [%d] pkt [%d]\n", i, packet_in_work->PktID);
-				if (delay == 195381) printf("[2 195381] why not added to flow [%d] pkt [%d]\n", i, packet_in_work->PktID);
 				if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
 				flows_array[i].sum_delay += delay;
 				fprintf(out_filePointer, "%ld: %ld\n",Timer, packet_in_work->PktID);
@@ -583,4 +582,11 @@ int packets_num(int index) {
 	return counter;
 }
 
+double get_avg_delay(int index) {
+	double avg_delay = (double)flows_array[index].sum_delay / (double)flows_array[index].numPkts;
+	long int avg_int = (int)avg_delay;
+	double avg_diff = avg_delay - avg_int;
+	avg_diff = avg_diff * 1000;
+	printf("%lf / %lf = %.3lf %d\n", (double)flows_array[i].sum_delay, (double)flows_array[i].numPkts, avg_delay, (int)avg_diff);
 
+}

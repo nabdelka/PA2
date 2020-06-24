@@ -39,4 +39,4 @@ void DRR_func();
 
 void print_flows_array();
 bool buffer_is_empty();
-int packets_num(int index)
+int packets_num(int index);
