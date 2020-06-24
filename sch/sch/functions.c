@@ -251,11 +251,6 @@ int schedule() {
 	// write to stat file
 	for (int i = 0; i < flows_number; i++) {
 		double avg_delay = (double)flows_array[i].sum_delay /(double)flows_array[i].numPkts;
-		long int avg_int = (int)avg_delay;
-		double avg_diff = avg_delay - avg_int;
-		avg_diff = avg_diff * 1000;
-		printf("%lf / %lf = %.3lf %d\n", (double)flows_array[i].sum_delay, (double)flows_array[i].numPkts, avg_delay, (int)avg_diff);
-
 		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f %ld\n", flows_array[i].Sadd, flows_array[i].Sport, flows_array[i].Dadd, flows_array[i].Dport, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay, flows_array[i].maxbuf);
 	}
 
@@ -514,6 +509,7 @@ void DRR_func() {
 		work_index = 0;
 	}
 	bool new_cycle = false;
+	long int delay;
 	for (int i = work_index; i <= flows_number; i++) {
 		
 		if (i == flows_number) {
@@ -533,7 +529,9 @@ void DRR_func() {
 			if (flows_array[i].credit >= current_packet->Length) {
 				work_index = i;
 				flows_array[i].current_backets_num--;
-
+				delay = Timer - current_packet->Time;
+				if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
+				flows_array[i].sum_delay += delay;
 				fprintf(out_filePointer, "%ld: %ld\n", Timer, current_packet->PktID);
 				flows_array[i].credit = flows_array[i].credit - current_packet->Length;
 				work_Length = current_packet->Length-1;
