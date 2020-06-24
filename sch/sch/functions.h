@@ -11,10 +11,13 @@ typedef struct flow_struct
 	//stat
 	long int max_delay;
 	long int sum_delay;
-	long int maxbuf ;
+	long int max_buf ;
+	long int sum_buf;
 	long int current_backets_num ;
+	long int first_pkt_time;
+	long int last_pkt_time;
 	int numPkts;
-	long int sum;
+	// List
 	struct flow_index_struct *head;
 } flow_struct;
 

@@ -15,6 +15,8 @@ long int Timer = -1;
 unsigned int work_index=-1; 
 int work_weight = 0;  
 long int work_Length = 0;
+long int last_pkt_time = 0;
+long int first_pkt_time = -1;
 // Debug
 int Iteration = 2;
 bool iter = false;
@@ -251,7 +253,9 @@ int schedule() {
 	// write to stat file
 	for (int i = 0; i < flows_number; i++) {
 		double avg_delay = (double)flows_array[i].sum_delay /(double)flows_array[i].numPkts;
-		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f %ld\n", flows_array[i].Sadd, flows_array[i].Sport, flows_array[i].Dadd, flows_array[i].Dport, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay, flows_array[i].maxbuf);
+		long int time_range = last_pkt_time - first_pkt_time;
+		double avg_bfr = time_range == 0 ? 0: (double)flows_array[i].sum_buf / (double)time_range;
+		fprintf(stat_filePointer, "%s %d %s %d %d %ld %.2f %ld %.2f\n", flows_array[i].Sadd, flows_array[i].Sport, flows_array[i].Dadd, flows_array[i].Dport, flows_array[i].numPkts, flows_array[i].max_delay,avg_delay, flows_array[i].max_buf, avg_bfr);
 	}
 
 
@@ -376,8 +380,11 @@ int get_flow_index( int weight_, char *sadd, char *dadd, unsigned int sport, uns
 		flows_array[i].sum_delay = 0;
 		flows_array[i].credit = 0;
 		flows_array[i].current_backets_num = 0;
-		flows_array[i].maxbuf = 0;
-		flows_array[i].sum = 0;
+		flows_array[i].max_buf = 0;
+		flows_array[i].sum_buf = 0;
+
+
+
 
 		flows_number++;		
 	}
@@ -410,6 +417,8 @@ void add_packet_to_buf(int index, packet_struct* packet_to_add) {
 	}
 	flows_array[index].numPkts++;
 	flows_array[index].current_backets_num++;
+	if (first_pkt_time == -1) first_pkt_time = packet_to_add->Time;
+
 }
 
 
@@ -434,6 +443,9 @@ void WRR_func() {
 				flows_array[i].sum_delay += delay;
 				fprintf(out_filePointer, "%ld: %ld\n",Timer, packet_in_work->PktID);
 				flows_array[work_index].current_backets_num--;
+				last_pkt_time = Timer + work_Length;
+
+
 
 				break;
 			}
@@ -475,10 +487,7 @@ void WRR_func() {
 
 	if (out_packet && work_index!=-1) {
 		packet_in_work = flows_array[work_index].head;
-		if (packet_in_work == NULL) {
-			printf("WTF %d\n",work_index);
-			//print_flows_array();
-		}
+
 		work_Length = packet_in_work->Length;
 		// update delay stat
 		delay = Timer - packet_in_work->Time + 1;
@@ -490,6 +499,8 @@ void WRR_func() {
 
 		fprintf(out_filePointer, "%ld: %ld\n", Timer+1, packet_in_work->PktID);
 		flows_array[work_index].current_backets_num--;
+		last_pkt_time = Timer +1 + work_Length;
+
 
 	}
 
@@ -533,9 +544,12 @@ void DRR_func() {
 				delay = Timer - current_packet->Time;
 				if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
 				flows_array[i].sum_delay += delay;
+
 				fprintf(out_filePointer, "%ld: %ld\n", Timer, current_packet->PktID);
 				flows_array[i].credit = flows_array[i].credit - current_packet->Length;
 				work_Length = current_packet->Length-1;
+				last_pkt_time = Timer + work_Length ;
+
 				flows_array[i].head = current_packet->next;
 				free(current_packet);
 				return;
@@ -575,24 +589,21 @@ void print_flows_array() {
 
 void packets_num() {
 	packet_struct* packet_in_chain;
-	for (int i = 0; i <= flows_number; i++) {
-		if (flows_array[i].current_backets_num > flows_array[i].maxbuf) {
-			flows_array[i].maxbuf = flows_array[i].current_backets_num;
+	for (int i = 0; i < flows_number; i++) {
+		if (flows_array[i].current_backets_num > flows_array[i].max_buf) {
+			flows_array[i].max_buf = flows_array[i].current_backets_num;
 		}
 		if (flows_array[i].head == NULL) {
 			continue;
 		}
 		else
 		{
-			packet_in_chain = flows_array[i].head;
-			flows_array[i].sum++;
-			while (packet_in_chain->next != NULL) {
-				flows_array[i].sum++;
-			}
+			flows_array[i].sum_buf+= flows_array[i].current_backets_num;
+
 		}
 	}
-}
 
+}
 
 
 
