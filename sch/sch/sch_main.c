@@ -29,19 +29,5 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-// TODO N Done - move functions to a seperate files
-// TODO N Done - global array to save flows with lists addresses and global int to store flows number
-// TODO N Done - fix open_s
-// TODO N - function to check if flows parameters (4 addresses) is exist - takes input ( sadd sport dadd dport ) return index if exist, and -1 if not
-// TODO N - function takes index and a new packet address, and it adds the packet to the begining of the list
-// TODO N - function to generate a new packet/flow struct and return pointer + free
-
-
-// TODO A Done - add structs for packet and for flow
-// TODO A Done - close opened file
-// TODO A - function to add new packet (struct) to a flow:
-//			if flow exist, add to the list (call the function below)
-//			else flow and packet to the global array and updat flow num
-// TODO A - fill array when reading packets
 
 

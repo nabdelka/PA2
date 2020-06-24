@@ -37,3 +37,4 @@ void DRR_func();
 void DRR_func();
 
 void print_flows_array();
+bool buffer_is_empty();

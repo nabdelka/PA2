@@ -83,7 +83,7 @@ int schedule() {
 					do {
 						// time ITERATION
 						if (Timer == print_time) {
-							print_flows_array();
+							//sprint_flows_array();
 							//if(print_stop) return 0;
 						}
 
@@ -91,7 +91,7 @@ int schedule() {
 						else						DRR_func();
 
 						if (Timer == print_time) {
-							print_flows_array();
+							//print_flows_array();
 							if (print_stop) return 0;
 						}
 						Timer++;
@@ -107,7 +107,7 @@ int schedule() {
 					Iteration--;
 					if (Iteration == 0 && iter)
 					{
-						print_flows_array();
+						//print_flows_array();
 						printf("fuck you\n");
 						return -1;
 					}
@@ -223,15 +223,15 @@ int schedule() {
 	}
 
 
-	while (work_index != -1) {
+	while (!buffer_is_empty()) {
 		if (Timer == print_time) {
-			print_flows_array();
+			//print_flows_array();
 			//return 0;
 		}
 		if (schedule_type == RR_TYPE)	WRR_func();
 		else						    DRR_func();
 		if (Timer == print_time) {
-			print_flows_array();
+			//print_flows_array();
 			//return 0;
 		}
 		Timer++;
@@ -346,10 +346,6 @@ void get_file_names(char *name_str) {
 		strcat_s(input_file, name_len + 8, "_in.txt");
 		strcat_s(stat_file, name_len + 10, "_stat.txt");
 		strcat_s(output_file, name_len + 9, "_out.txt");
-		// TODO remove prints
-		printf("-I- input = %s\n", input_file);
-		printf("-I- stat = %s\n", stat_file);
-		printf("-I- output = %s\n", output_file);
 
 	}
 
@@ -419,7 +415,6 @@ void WRR_func() {
 	long int delay;
 
 	if (work_index == -1) {
-		printf("Noor fucking first call %d\n",flows_number);
 		for(i = 0; i< flows_number;i++){
 			if (flows_array[i].head != NULL) {
 				work_index = i;
@@ -428,6 +423,8 @@ void WRR_func() {
 				work_Length = packet_in_work->Length;
 				// update delay stat
 				delay = Timer - packet_in_work->Time;
+				if (delay == 47964) printf("[2 47964] why not added to flow [%d] pkt [%d]\n", i, packet_in_work->PktID);
+				if (delay == 195381) printf("[2 195381] why not added to flow [%d] pkt [%d]\n", i, packet_in_work->PktID);
 				if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
 				flows_array[i].sum_delay += delay;
 				fprintf(out_filePointer, "%ld: %ld\n",Timer, packet_in_work->PktID);
@@ -473,13 +470,17 @@ void WRR_func() {
 		packet_in_work = flows_array[work_index].head;
 		if (packet_in_work == NULL) {
 			printf("WTF %d\n",work_index);
-			print_flows_array();
+			//print_flows_array();
 		}
 		work_Length = packet_in_work->Length;
 		// update delay stat
 		delay = Timer - packet_in_work->Time + 1;
-		if (delay > flows_array[i].max_delay) flows_array[i].max_delay = delay;
-		flows_array[i].sum_delay += delay;
+		if (delay == 47964) printf("[1 47964] why not added to flow [%d] pkt [%d]\n", work_index, packet_in_work->PktID);
+		if (delay == 195381) printf("[1 195381] why not added to flow [%d] pkt [%d]\n", work_index, packet_in_work->PktID);
+
+		
+		if (delay > flows_array[work_index].max_delay) flows_array[work_index].max_delay = delay;
+		flows_array[work_index].sum_delay += delay;
 
 		fprintf(out_filePointer, "%ld: %ld\n", Timer+1, packet_in_work->PktID);
 	}
@@ -502,23 +503,19 @@ void DRR_func() {
 	}
 	bool new_cycle = false;
 	for (int i = work_index; i <= flows_number; i++) {
+		
 		if (i == flows_number) {
 			// TODO need to identify empty buffer
 			i = 0; new_cycle = true;
 		}
 		if (flows_array[i].head == NULL) {
 			// Nothing to send
-			if (Timer == print_time && i == 3) printf("reset credit for 3\n", flows_array[i].credit);
-
 			flows_array[i].credit = 0;
 			continue;
 		}
 		else {
 			if ((i != work_index) || new_cycle) {
-				if (Timer == print_time && i == 3) printf("work_idx = %d   updating credit of flow 3\n%ld ->", work_index,flows_array[i].credit);
 				flows_array[i].credit = flows_array[i].credit + flows_array[i].weight;
-				if (Timer == print_time && i == 3) printf(" %ld\n", flows_array[i].credit);
-
 			}
 			current_packet = flows_array[i].head;
 			if (flows_array[i].credit >= current_packet->Length) {
@@ -534,7 +531,10 @@ void DRR_func() {
 	}
 }
 
-
+bool buffer_is_empty() {
+	for (int i = 0; i < flows_number; i++) if (flows_array[i].head != NULL) return false;
+	return true;
+}
 
 
 // Debug
